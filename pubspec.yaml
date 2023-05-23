@@ -1,0 +1,31 @@
+name: fhir_validation
+description: A Dart/Flutter package for validating FHIR JSON.
+version: 0.11.0
+homepage: https://www.fhirfli.dev/
+repository: https://github.com/MayJuun/fhir/tree/main/fhir_validation
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  fhir: ^0.11.0
+  collection: ^1.17.1
+  crypto: ^3.0.3
+  freezed_annotation: ^2.2.0
+  http: ^0.13.6
+  intl: ^0.18.0
+  json_annotation: ^4.8.1
+  riverpod_annotation: ^2.1.1
+  universal_html: ^2.2.2
+  validators: ^3.0.0
+
+dev_dependencies:
+  ### ****** PUB.DEV ******
+  # analyzer: ">=3.4.0 <=4.2.0"
+  # analyzer: ^4.2.0
+  build_runner: ^2.4.4
+  freezed: ^2.3.4
+  import_sorter: ^4.6.0
+  json_serializable: ^6.7.0
+  riverpod_generator: ^2.2.3
+  test: ^1.24.3
