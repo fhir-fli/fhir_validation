@@ -9,13 +9,13 @@ The following parts of [FHIR Validation](https://build.fhir.org/validation) have
 - Structure
 - Cardinality
 - Value Domains
-- Questionnaires
 
 ## Not Implemented (yet)
 
 The following aspects have NOT been implemented
 
+- Invariants - these are listed as Constraints in the Structure Definitions (todo)
 - Profiles (todo)
 - Coding/CodeableConcept bindings (todo)
-- Invariants (todo)
+- Questionnaires (todo)
 - Business Rules

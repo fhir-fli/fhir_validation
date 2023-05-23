@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:fhir/r4.dart';
+import 'package:fhir_path/fhir_path.dart';
 import 'package:http/http.dart';
 
 import '../code_system_maps/code_system_maps.dart';
@@ -73,7 +74,7 @@ Future<Map<String, List<String>?>> validateFhirMaps({
   /// Create a list of all paths in the [mapToValidate]
   final fhirPaths = fhirPathsFromMap(value: mapToValidate, path: type);
   final returnMap = await evaluateFromPaths(
-      fhirPaths, structureDefinition, type, startPath, online);
+      fhirPaths, structureDefinition, type, startPath, online, mapToValidate);
 
   return returnMap;
 }
@@ -84,6 +85,7 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
   String type,
   String startPath,
   bool online,
+  Map<String, dynamic> mapToValidate,
 ) async {
   var returnMap = <String, List<String>?>{};
 
@@ -118,6 +120,7 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
           fullMatch: elementPath,
           type: element.type,
           binding: element.binding,
+          constraint: element.constraint,
         );
         return true;
       }
@@ -180,6 +183,7 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
               noIndex: noIndexesPath,
               fullMatch: pathsList.join('.'),
               binding: element.binding,
+              constraint: element.constraint,
             );
             return true;
           } else if (noIndexesPath.startsWith(tempPath)) {
@@ -197,6 +201,7 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
                 noIndex: noIndexesPath,
                 partialMatch: elementPath,
                 binding: element.binding,
+                constraint: element.constraint,
               );
             }
           }
@@ -232,6 +237,7 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
               noIndex: noIndexesPath,
               partialMatch: elementPath,
               binding: element.binding,
+              constraint: element.constraint,
             );
           }
         }
@@ -263,6 +269,7 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
                 noIndex: noIndexesPath,
                 partialMatch: tempPaths,
                 binding: element.binding,
+                constraint: element.constraint,
               );
             }
           }
@@ -462,6 +469,12 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
         }
       }
     }
+    final constraints = fhirPathMatches[key]?.constraint;
+    for (final constraint in constraints ?? <ElementDefinitionConstraint>[]) {
+      print(walkFhirPath(
+          context: mapToValidate,
+          pathExpression: '$key.where(${constraint.expression})'));
+    }
   }
 
   final partialMatchMap = <String, dynamic>{};
@@ -555,6 +568,7 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
                   newType,
                   startOfPath,
                   online,
+                  mapToValidate,
                 ),
               );
             }

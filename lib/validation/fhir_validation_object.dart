@@ -7,6 +7,7 @@ class FhirValidationObject {
     this.partialMatch = '',
     this.type = '',
     this.binding,
+    this.constraint,
   });
 
   String noIndex;
@@ -14,6 +15,7 @@ class FhirValidationObject {
   String? partialMatch;
   String? type;
   ElementDefinitionBinding? binding;
+  List<ElementDefinitionConstraint>? constraint;
 
   Map<String, dynamic> toJson() => {
         'noIndex': noIndex,
@@ -21,6 +23,7 @@ class FhirValidationObject {
         'partialMatch': partialMatch,
         'type': type,
         'binding': binding?.toJson(),
+        'constraint': constraint?.map((e) => e.toJson()).toList(),
       };
 }
 
@@ -32,6 +35,7 @@ Map<String, FhirValidationObject> addToFhirPathMatches({
   String? partialMatch,
   required List<ElementDefinitionType>? type,
   required ElementDefinitionBinding? binding,
+  required List<ElementDefinitionConstraint>? constraint,
 }) {
   if (fhirPathMatches.containsKey(key)) {
     fhirPathMatches[key]!.noIndex = noIndex;
@@ -41,7 +45,11 @@ Map<String, FhirValidationObject> addToFhirPathMatches({
         partialMatch ?? fhirPathMatches[key]!.partialMatch;
   } else {
     fhirPathMatches[key] = FhirValidationObject(
-        noIndex: noIndex, fullMatch: fullMatch, partialMatch: partialMatch);
+      noIndex: noIndex,
+      fullMatch: fullMatch,
+      partialMatch: partialMatch,
+      constraint: constraint,
+    );
   }
   if (fullMatch != null) {
     if (type != null && type.isNotEmpty) {

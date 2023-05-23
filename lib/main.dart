@@ -6,16 +6,23 @@ import 'validation/validate.dart';
 
 Future main() async {
   print(jsonPrettyPrint(await validateFhirMaps(
-    mapToValidate: resource,
-    structureDefinition: StructureDefinition.fromJson(bundle),
-    type: 'Bundle',
-    startPath: 'Bundle',
+    mapToValidate: thisPatient.toJson(),
+    structureDefinition: StructureDefinition.fromJson(patient),
+    type: 'Patient',
+    startPath: 'Patient',
     online: false,
   )));
+  // print(jsonPrettyPrint(await validateFhirMaps(
+  //   mapToValidate: resource,
+  //   structureDefinition: StructureDefinition.fromJson(bundle),
+  //   type: 'Bundle',
+  //   startPath: 'Bundle',
+  //   online: false,
+  // )));
 }
 
-final patient = Patient(
-  resourceType: R4ResourceType.Account,
+final thisPatient = Patient(
+  resourceType: R4ResourceType.Patient,
   name: [
     HumanName(family: 'Faulkenberry'),
   ],

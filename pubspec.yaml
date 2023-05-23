@@ -9,6 +9,7 @@ environment:
 
 dependencies:
   fhir: ^0.11.0
+  fhir_path: ^0.11.0
   collection: ^1.17.1
   crypto: ^3.0.3
   freezed_annotation: ^2.2.0
