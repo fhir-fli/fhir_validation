@@ -473,7 +473,8 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
     for (final constraint in constraints ?? <ElementDefinitionConstraint>[]) {
       print(walkFhirPath(
           context: mapToValidate,
-          pathExpression: '$key.where(${constraint.expression})'));
+          pathExpression:
+              '${fullPathFromStartAndCurrent(startPath, key)}.where(${constraint.expression})'));
     }
   }
 
