@@ -183,7 +183,7 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
               noIndex: noIndexesPath,
               fullMatch: pathsList.join('.'),
               binding: element.binding,
-              constraint: element.constraint,
+              constraint: null, //element.constraint,
             );
             return true;
           } else if (noIndexesPath.startsWith(tempPath)) {
@@ -201,7 +201,7 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
                 noIndex: noIndexesPath,
                 partialMatch: elementPath,
                 binding: element.binding,
-                constraint: element.constraint,
+                constraint: null, //element.constraint,
               );
             }
           }
@@ -237,7 +237,7 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
               noIndex: noIndexesPath,
               partialMatch: elementPath,
               binding: element.binding,
-              constraint: element.constraint,
+              constraint: null, //element.constraint,
             );
           }
         }
@@ -269,7 +269,7 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
                 noIndex: noIndexesPath,
                 partialMatch: tempPaths,
                 binding: element.binding,
-                constraint: element.constraint,
+                constraint: null, //element.constraint,
               );
             }
           }
@@ -471,6 +471,8 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
     }
     final constraints = fhirPathMatches[key]?.constraint;
     for (final constraint in constraints ?? <ElementDefinitionConstraint>[]) {
+      print(
+          '${fullPathFromStartAndCurrent(startPath, key)}.where(${constraint.expression})');
       print(walkFhirPath(
           context: mapToValidate,
           pathExpression:

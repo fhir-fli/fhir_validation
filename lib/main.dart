@@ -5,13 +5,13 @@ import 'utils/utils.dart';
 import 'validation/validate.dart';
 
 Future main() async {
-  print(jsonPrettyPrint(await validateFhirMaps(
-    mapToValidate: thisPatient.toJson(),
-    structureDefinition: StructureDefinition.fromJson(patient),
-    type: 'Patient',
-    startPath: 'Patient',
-    online: false,
-  )));
+  // print(jsonPrettyPrint(await validateFhirMaps(
+  //   mapToValidate: thisPatient.toJson(),
+  //   structureDefinition: StructureDefinition.fromJson(patient),
+  //   type: 'Patient',
+  //   startPath: 'Patient',
+  //   online: false,
+  // )));
   // print(jsonPrettyPrint(await validateFhirMaps(
   //   mapToValidate: resource,
   //   structureDefinition: StructureDefinition.fromJson(bundle),
@@ -19,6 +19,13 @@ Future main() async {
   //   startPath: 'Bundle',
   //   online: false,
   // )));
+  print(jsonPrettyPrint(await validateFhirMaps(
+    mapToValidate: thisObservation.toJson(),
+    structureDefinition: StructureDefinition.fromJson(observation),
+    type: 'Observation',
+    startPath: 'Observation',
+    online: false,
+  )));
 }
 
 final thisPatient = Patient(
@@ -205,3 +212,73 @@ final resource = {
     }
   ]
 };
+
+final thisObservation = Observation.fromJson({
+  "resourceType": "Observation",
+  "id": "1955381",
+  "meta": {
+    "versionId": "1",
+    "lastUpdated": "2021-03-18T13:03:46.677+00:00",
+    "source": "#VOERTEym8OBEHPuv"
+  },
+  "status": "final",
+  "category": [
+    {
+      "coding": [
+        {
+          "system":
+              "http://terminology.hl7.org/CodeSystem/observation-category",
+          "code": "vital-signs",
+          "display": "vital-signs"
+        }
+      ],
+      "text": "vital-signs"
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "system": "urn:oid:2.16.840.1.113883.6.96",
+        "code": "46680005",
+        "display": "Vital signs"
+      }
+    ]
+  },
+  "subject": {"reference": "Patient/1955296"},
+  "effectivePeriod": {
+    "start": "2017-06-20T13:00:07+05:30",
+    "end": "2017-06-20T13:00:07+05:30"
+  },
+  "component": [
+    {
+      "code": {
+        "coding": [
+          {"system": "urn:oid:2.16.840.1.113883.6.1", "code": "3141-9"},
+          {
+            "system": "urn:oid:1.2.840.113619.21.3.2527",
+            "code": "61",
+            "display": "weight E&M - 3141-9"
+          }
+        ]
+      },
+      "valueQuantity": {"value": 144.0, "unit": "[lb_av]"},
+      "interpretation": [
+        {
+          "coding": [
+            {"system": "urn:oid:"}
+          ]
+        },
+        {
+          "coding": [
+            {"system": "urn:oid:"}
+          ]
+        },
+        {
+          "coding": [
+            {"system": "urn:oid:"}
+          ]
+        }
+      ]
+    }
+  ]
+});

@@ -43,6 +43,14 @@ Map<String, FhirValidationObject> addToFhirPathMatches({
         fullMatch ?? fhirPathMatches[key]!.fullMatch;
     fhirPathMatches[key]!.partialMatch =
         partialMatch ?? fhirPathMatches[key]!.partialMatch;
+    if (fhirPathMatches[key]!.constraint == null) {
+      fhirPathMatches[key]!.constraint = constraint;
+    } else if (constraint != null) {
+      fhirPathMatches[key]!.constraint = [
+        ...fhirPathMatches[key]!.constraint!,
+        ...constraint
+      ];
+    }
   } else {
     fhirPathMatches[key] = FhirValidationObject(
       noIndex: noIndex,
