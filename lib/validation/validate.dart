@@ -476,7 +476,8 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
       print(walkFhirPath(
           context: mapToValidate,
           pathExpression:
-              '${fullPathFromStartAndCurrent(startPath, key)}.where(${constraint.expression})'));
+              '${fullPathFromStartAndCurrent(startPath, key)}.where(${constraint.expression})'
+                  .replaceAll('[x]', '')));
     }
   }
 

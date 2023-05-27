@@ -12,18 +12,25 @@ Future main() async {
   //   startPath: 'Patient',
   //   online: false,
   // )));
+  print(jsonPrettyPrint(await validateFhirMaps(
+    mapToValidate: resource,
+    structureDefinition: StructureDefinition.fromJson(bundle),
+    type: 'Bundle',
+    startPath: 'Bundle',
+    online: false,
+  )));
   // print(jsonPrettyPrint(await validateFhirMaps(
-  //   mapToValidate: resource,
-  //   structureDefinition: StructureDefinition.fromJson(bundle),
-  //   type: 'Bundle',
-  //   startPath: 'Bundle',
+  //   mapToValidate: thisObservation.toJson(),
+  //   structureDefinition: StructureDefinition.fromJson(observation),
+  //   type: 'Observation',
+  //   startPath: 'Observation',
   //   online: false,
   // )));
   print(jsonPrettyPrint(await validateFhirMaps(
-    mapToValidate: thisObservation.toJson(),
-    structureDefinition: StructureDefinition.fromJson(observation),
-    type: 'Observation',
-    startPath: 'Observation',
+    mapToValidate: thisQuestionnaire.toJson(),
+    structureDefinition: StructureDefinition.fromJson(questionnaire),
+    type: 'Questionnaire',
+    startPath: 'Questionnaire',
     online: false,
   )));
 }
@@ -276,6 +283,196 @@ final thisObservation = Observation.fromJson({
         {
           "coding": [
             {"system": "urn:oid:"}
+          ]
+        }
+      ]
+    }
+  ]
+});
+
+final thisQuestionnaire = Questionnaire.fromJson({
+  "resourceType": "Questionnaire",
+  "id": "cage",
+  "url": "https://mayjuun.com/fhir/Questionnaire/cage",
+  "name": "cage",
+  "title": "CAGE Substance Abuse Screening Tool",
+  "status": "active",
+  "publisher": "MayJuun LLC",
+  "contact": [
+    {
+      "name": "MayJuun LLC",
+      "telecom": [
+        {"system": "email", "value": "info@mayjuun.com", "use": "work"}
+      ]
+    }
+  ],
+  "item": [
+    {
+      "extension": [
+        {
+          "url":
+              "http://hl7.org/fhir/StructureDefinition/questionnaire-itemControl",
+          "valueCodeableConcept": {
+            "coding": [
+              {
+                "system": "http://hl7.org/fhir/questionnaire-item-control",
+                "code": "header",
+                "display": "Header"
+              }
+            ],
+            "text":
+                "The group is to be continuously visible at the top of the questionnaire"
+          }
+        }
+      ],
+      "linkId": "/cage",
+      "text":
+          "CAGE is a substance abuse screening tool. Please answer questions below as yes or no. ",
+      "type": "group",
+      "item": [
+        {
+          "linkId": "/cage/question1",
+          "text": "Have you ever felt you should cut down on your drinking?",
+          "type": "choice",
+          "required": true,
+          "answerOption": [
+            {
+              "valueCoding": {
+                "extension": [
+                  {
+                    "url":
+                        "http://hl7.org/fhir/StructureDefinition/ordinalValue",
+                    "valueDecimal": 1
+                  }
+                ],
+                "code": "Yes",
+                "display": "Yes",
+                "_display": {"extension": []}
+              }
+            },
+            {
+              "valueCoding": {
+                "extension": [
+                  {
+                    "url":
+                        "http://hl7.org/fhir/StructureDefinition/ordinalValue",
+                    "valueDecimal": 0
+                  }
+                ],
+                "code": "No",
+                "display": "No",
+                "_display": {"extension": []}
+              }
+            }
+          ]
+        },
+        {
+          "linkId": "/cage/question2",
+          "text": "Have people annoyed you by criticizing your drinking?",
+          "type": "choice",
+          "required": true,
+          "answerOption": [
+            {
+              "valueCoding": {
+                "extension": [
+                  {
+                    "url":
+                        "http://hl7.org/fhir/StructureDefinition/ordinalValue",
+                    "valueDecimal": 1
+                  }
+                ],
+                "code": "Yes",
+                "display": "Yes",
+                "_display": {"extension": []}
+              }
+            },
+            {
+              "valueCoding": {
+                "extension": [
+                  {
+                    "url":
+                        "http://hl7.org/fhir/StructureDefinition/ordinalValue",
+                    "valueDecimal": 0
+                  }
+                ],
+                "code": "No",
+                "display": "No",
+                "_display": {"extension": []}
+              }
+            }
+          ]
+        },
+        {
+          "linkId": "/cage/question3",
+          "text": "Have you ever felt bad or guilty about your drinking?",
+          "type": "choice",
+          "required": true,
+          "answerOption": [
+            {
+              "valueCoding": {
+                "extension": [
+                  {
+                    "url":
+                        "http://hl7.org/fhir/StructureDefinition/ordinalValue",
+                    "valueDecimal": 1
+                  }
+                ],
+                "code": "Yes",
+                "display": "Yes",
+                "_display": {"extension": []}
+              }
+            },
+            {
+              "valueCoding": {
+                "extension": [
+                  {
+                    "url":
+                        "http://hl7.org/fhir/StructureDefinition/ordinalValue",
+                    "valueDecimal": 0
+                  }
+                ],
+                "code": "No",
+                "display": "No",
+                "_display": {"extension": []}
+              }
+            }
+          ]
+        },
+        {
+          "linkId": "/cage/question4",
+          "text":
+              "Have you ever had a drink first thing in the morning to steady your nerves or to get rid of a hangover (eye-opener)?",
+          "type": "choice",
+          "required": true,
+          "answerOption": [
+            {
+              "valueCoding": {
+                "extension": [
+                  {
+                    "url":
+                        "http://hl7.org/fhir/StructureDefinition/ordinalValue",
+                    "valueDecimal": 1
+                  }
+                ],
+                "code": "Yes",
+                "display": "Yes",
+                "_display": {"extension": []}
+              }
+            },
+            {
+              "valueCoding": {
+                "extension": [
+                  {
+                    "url":
+                        "http://hl7.org/fhir/StructureDefinition/ordinalValue",
+                    "valueDecimal": 0
+                  }
+                ],
+                "code": "No",
+                "display": "No",
+                "_display": {"extension": []}
+              }
+            }
           ]
         }
       ]
