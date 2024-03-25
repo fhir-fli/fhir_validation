@@ -9,29 +9,36 @@ environment:
 
 dependencies:
   antlr4: ^4.13.1
-  fhir: ^0.11.4
+  fhir_primitives:
+    path: ../fhir_primitives
+  fhir_r4:
+    path: ../fhir_r4
+  fhir_r5:
+    path: ../fhir_r5
   # fhir_path: ^0.11.2
   fhir_path:
     path: ../fhir_path
   collection: ^1.18.0
   crypto: ^3.0.3
   freezed_annotation: ^2.4.1
-  http: ^1.1.2
-  intl: ^0.18.0
+  http: ^1.2.1
+  intl: ^0.19.0
   json_annotation: ^4.8.1
-  logger: ^2.0.2+1
+  logger: ^2.2.0
   petitparser: ^6.0.2
-  riverpod_annotation: ^2.1.1
-  universal_html: ^2.2.2
+  riverpod_annotation: ^2.3.5
+  ucum: 
+    path: ../ucum
+  universal_html: ^2.2.4
   validators: ^3.0.0
 
 dev_dependencies:
   ### ****** PUB.DEV ******
   # analyzer: ">=3.4.0 <=4.2.0"
   # analyzer: ^4.2.0
-  build_runner: ^2.4.4
-  freezed: ^2.3.4
+  build_runner: ^2.4.8
+  freezed: ^2.4.7
   import_sorter: ^4.6.0
-  json_serializable: ^6.7.0
-  riverpod_generator: ^2.2.3
-  test: ^1.24.3
+  json_serializable: ^6.7.1
+  riverpod_generator: ^2.4.0
+  test: ^1.25.2
