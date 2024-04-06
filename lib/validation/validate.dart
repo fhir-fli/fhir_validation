@@ -1,6 +1,7 @@
 import 'dart:convert';
 
-import 'package:fhir/r4.dart';
+import 'package:fhir_primitives/fhir_primitives.dart';
+import 'package:fhir_r4/fhir_r4.dart';
 import 'package:fhir_path/fhir_path.dart';
 import 'package:http/http.dart';
 

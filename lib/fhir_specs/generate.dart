@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:fhir/r4.dart';
+import 'package:fhir_r4/fhir_r4.dart';
 
 Future<String> main() async {
   var dir = Directory('.');
@@ -75,13 +75,13 @@ Future<String> main() async {
 }
 
 String? structureDefinitionName(Resource resource) =>
-    (resource as StructureDefinition).fhirId ?? resource.title ?? resource.name;
+    (resource as StructureDefinition).id ?? resource.title ?? resource.name;
 
 String? valueSetName(Resource resource) =>
-    (resource as ValueSet).fhirId ?? resource.title ?? resource.name;
+    (resource as ValueSet).id ?? resource.title ?? resource.name;
 
 String? codeSystemName(Resource resource) =>
-    (resource as CodeSystem).fhirId ?? resource.title ?? resource.name;
+    (resource as CodeSystem).id ?? resource.title ?? resource.name;
 
 String structureDefinitionCanonical(Resource resource) =>
     (resource as StructureDefinition).url.toString();

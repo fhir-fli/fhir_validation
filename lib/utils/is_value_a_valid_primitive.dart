@@ -1,4 +1,4 @@
-import 'package:fhir/primitive_types/primitive_types.dart';
+import 'package:fhir_primitives/fhir_primitives.dart';
 
 bool isValueAValidPrimitive(String primitiveClass, dynamic value) {
   try {

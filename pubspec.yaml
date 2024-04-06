@@ -11,11 +11,14 @@ dependencies:
   antlr4: ^4.13.1
   fhir_primitives:
     path: ../fhir_primitives
+  fhir_dstu2:
+    path: ../fhir_dstu2
+  fhir_stu3:
+    path: ../fhir_stu3
   fhir_r4:
     path: ../fhir_r4
   fhir_r5:
     path: ../fhir_r5
-  # fhir_path: ^0.11.2
   fhir_path:
     path: ../fhir_path
   collection: ^1.18.0
