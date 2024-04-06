@@ -12,12 +12,9 @@ Future<void> main() async {
     if (file is File && file.path.endsWith('.json')) {
       final fileString = file.readAsStringSync();
       final namingSystem = NamingSystem.fromJsonString(fileString);
-      final name = 'namingSystem${namingSystem.id ?? ''}';
+      final name = 'namingSystem${namingSystem.id ?? ''}'.replaceAll('.', '_');
       final contents = 'const $name = ${jsonEncode(namingSystem.toJson())};';
-      final fileName = file.path
-          .replaceAll('.json', '.dart')
-          .replaceAll('.', '_')
-          .replaceAll('_dart', '.dart');
+      final fileName = 'naming_systems/$name.dart';
       await File(fileName).writeAsString(contents);
       exportFile +=
           'export \'${fileName.replaceAll("naming_systems/", "")}\';\n';
