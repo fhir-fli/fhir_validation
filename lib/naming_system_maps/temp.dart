@@ -14,9 +14,13 @@ Future<void> main() async {
       final namingSystem = NamingSystem.fromJsonString(fileString);
       final name = 'namingSystem${namingSystem.id ?? ''}';
       final contents = 'const $name = ${jsonEncode(namingSystem.toJson())};';
-      final fileName = file.path.replaceAll('.json', '.dart');
+      final fileName = file.path
+          .replaceAll('.json', '.dart')
+          .replaceAll('.', '_')
+          .replaceAll('_dart', '.dart');
       await File(fileName).writeAsString(contents);
-      exportFile += 'export \'$fileName\';\n';
+      exportFile +=
+          'export \'${fileName.replaceAll("naming_systems/", "")}\';\n';
       final oidIndex = namingSystem.uniqueId
           .indexWhere((e) => e.type?.value?.toLowerCase() == 'oid');
       final oid = oidIndex != -1 ? namingSystem.uniqueId[oidIndex].value : null;
