@@ -1,4 +1,4 @@
-import 'code_systems/codeSystems.dart';
+import 'code_systems/code_systems.dart';
 
 const codeSystemMaps = <String, Map<String, dynamic>>{
   "http://hl7.org/fhir/CodeSystem/example": example,

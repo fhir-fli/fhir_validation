@@ -669,11 +669,15 @@ Future<String> notInValueSetMessage(
   return "The value provided ($value) is not from the ValueSet ($valueSetCanonical), $message.";
 }
 
-Future<Map<String, dynamic>?> requestFromCanonical(String canonical) async {
+Future<Map<String, dynamic>?> requestFromCanonical(String canonical,
+    [Client? client]) async {
   Map<String, dynamic>? downloadedMap;
   try {
-    final response = await get(Uri.parse(canonical),
-        headers: {'Accept': 'application/fhir+json'});
+    final response = await (client == null
+        ? get(Uri.parse(canonical),
+            headers: {'Accept': 'application/fhir+json'})
+        : client.get(Uri.parse(canonical),
+            headers: {'Accept': 'application/fhir+json'}));
     if (response.statusCode == 200) {
       downloadedMap = jsonDecode(response.body);
     }
