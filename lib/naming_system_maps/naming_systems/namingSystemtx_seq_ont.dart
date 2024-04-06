@@ -1,0 +1,1 @@
+const namingSystemtx_seq_ont = {"resourceType":"NamingSystem","id":"tx-seq-ont","name":"Sequence Ontology","status":"draft","kind":"codesystem","date":"2015-08-21","publisher":"HL7, Inc","uniqueId":[{"type":"uri","value":"http://sequenceontology.org","preferred":true}]};
