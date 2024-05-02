@@ -147,7 +147,7 @@ Future<void> generateFiles(
   canonicalMap.forEach((key, value) {
     canonicals += '"$key": $value,';
     final tempName = value.substring(0, 1).toUpperCase() + value.substring(1);
-    if (resourceTypeFromStringMap.keys.contains(tempName) ||
+    if (R4ResourceType.typesAsStrings.contains(tempName) ||
         fhirTypes.contains(tempName)) {
       canonicals += '"$tempName": $value,';
     }

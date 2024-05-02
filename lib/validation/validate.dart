@@ -1,8 +1,6 @@
 import 'dart:convert';
 
-import 'package:fhir_primitives/fhir_primitives.dart';
 import 'package:fhir_r4/fhir_r4.dart';
-import 'package:fhir_path/fhir_path.dart';
 import 'package:http/http.dart';
 
 import '../code_system_maps/code_system_maps.dart';
@@ -16,49 +14,42 @@ part 'maps.dart';
 part 'fhir_paths_from_map.dart';
 
 Future<Map<String, List<String>?>> validateFhir({
-  required Resource resourceToValidate,
+  required Map<String, dynamic> resourceToValidate,
   StructureDefinition? structureDefinition,
 }) async {
   var returnMap = <String, List<String>?>{};
   if (structureDefinition == null) {
     final definitionMap =
-        structureDefinitionMaps[resourceToValidate.resourceTypeString];
+        structureDefinitionMaps[resourceToValidate['resourceType']];
     if (definitionMap == null) {
-      returnMap[
-          resourceToValidate.resourceTypeString ?? 'No ResourceType Found'] = [
+      returnMap[resourceToValidate['resourceType']] = [
         'No StructureDefinition was found for this Resource, which is '
-            'as a resourceType of: ${resourceToValidate.resourceTypeString}'
+            'as a resourceType of: ${resourceToValidate['resourceType']}'
       ];
     } else {
       structureDefinition = StructureDefinition.fromJson(definitionMap);
     }
   }
   if (structureDefinition == null) {
-    if (returnMap[resourceToValidate.resourceTypeString ??
-                'No ResourceType Found'] ==
-            null ||
-        returnMap[resourceToValidate.resourceTypeString ??
-                'No ResourceType Found']!
-            .isEmpty) {
-      returnMap[
-          resourceToValidate.resourceTypeString ?? 'No ResourceType Found'] = [
+    if (returnMap[resourceToValidate['resourceType']] == null ||
+        returnMap[resourceToValidate['resourceType']]!.isEmpty) {
+      returnMap[resourceToValidate['resourceType']] = [
         'No StructureDefinition was found for this Resource, which is '
-            'a resourceType of: ${resourceToValidate.resourceTypeString}'
+            'a resourceType of: ${resourceToValidate['resourceType']}'
       ];
     } else {
-      returnMap[
-              resourceToValidate.resourceTypeString ?? 'No ResourceType Found']!
+      returnMap[resourceToValidate['resourceType']]!
           .add('No StructureDefinition was found for this Resource, which is '
-              'a resourceType of: ${resourceToValidate.resourceTypeString}');
+              'a resourceType of: ${resourceToValidate['resourceType']}');
     }
   } else {
     returnMap = combineMaps(
       returnMap,
       await validateFhirMaps(
-        mapToValidate: resourceToValidate.toJson(),
+        mapToValidate: resourceToValidate,
         structureDefinition: structureDefinition,
-        type: resourceToValidate.resourceTypeString!,
-        startPath: resourceToValidate.resourceTypeString!,
+        type: resourceToValidate['resourceType'],
+        startPath: resourceToValidate['resourceType'],
       ),
     );
   }

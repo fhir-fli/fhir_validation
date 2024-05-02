@@ -9,8 +9,7 @@ environment:
 
 dependencies:
   antlr4: ^4.13.1
-  fhir_primitives:
-    path: ../fhir_primitives
+  fhir_primitives: ^0.1.0
   fhir_dstu2:
     path: ../fhir_dstu2
   fhir_stu3:
@@ -19,8 +18,6 @@ dependencies:
     path: ../fhir_r4
   fhir_r5:
     path: ../fhir_r5
-  fhir_path:
-    path: ../fhir_path
   collection: ^1.18.0
   crypto: ^3.0.3
   freezed_annotation: ^2.4.1
@@ -30,8 +27,7 @@ dependencies:
   logger: ^2.2.0
   petitparser: ^6.0.2
   riverpod_annotation: ^2.3.5
-  ucum: 
-    path: ../ucum
+  ucum: ^0.4.0
   universal_html: ^2.2.4
   validators: ^3.0.0
 
