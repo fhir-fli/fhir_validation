@@ -13,6 +13,46 @@ part 'fhir_validation_object.dart';
 part 'maps.dart';
 part 'fhir_paths_from_map.dart';
 
+Future<Map<String, List<String>?>> validateFhirResource(
+    Map<String, dynamic> resourceToValidate) async {
+  final dynamic type = resourceToValidate['resourceType'];
+  if (type == null) {
+    return <String, List<String>?>{
+      'resource': ['No resourceType was found']
+    };
+  } else {
+    final String typeString = type.toString();
+    if (!R4ResourceType.typesAsStrings.contains(typeString)) {
+      return <String, List<String>?>{
+        'resource': ['$typeString is not a recognized resourceType']
+      };
+    } else {
+      final Map<String, dynamic>? structureDefinitionMap =
+          structureDefinitionMaps[typeString];
+      if (structureDefinitionMap == null) {
+        return <String, List<String>?>{
+          'resource': ['no structureMap was found for $typeString']
+        };
+      } else {
+        try {
+          final StructureDefinition structureDefinition =
+              StructureDefinition.fromJson(structureDefinitionMap);
+          return validateFhir(
+              resourceToValidate: resourceToValidate,
+              structureDefinition: structureDefinition);
+        } catch (e, s) {
+          return <String, List<String>?>{
+            'resource': [
+              'there was an error with the Structuremap: $e',
+              'The stack at the time was $s'
+            ]
+          };
+        }
+      }
+    }
+  }
+}
+
 Future<Map<String, List<String>?>> validateFhir({
   required Map<String, dynamic> resourceToValidate,
   StructureDefinition? structureDefinition,
