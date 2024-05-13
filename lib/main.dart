@@ -1,8 +1,8 @@
 import 'package:fhir_primitives/fhir_primitives.dart';
 import 'package:fhir_r4/fhir_r4.dart';
 
-import 'structure_definition_maps/structure_definitions/structureDefinitions.dart';
-import 'utils/utils.dart';
+import 'src/systems/structure_definition_maps/structure_definitions/structureDefinitions.dart';
+import 'src/utils/utils.dart';
 import 'validation/validate.dart';
 
 Future main() async {
