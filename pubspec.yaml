@@ -32,6 +32,9 @@ dependencies:
   universal_html: ^2.2.4
   validators: ^3.0.0
 
+dependency_overrides:
+  meta: ^1.14.0
+
 dev_dependencies:
   ### ****** PUB.DEV ******
   # analyzer: ">=3.4.0 <=4.2.0"

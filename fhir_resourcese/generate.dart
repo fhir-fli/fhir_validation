@@ -49,9 +49,9 @@ Future<String> main() async {
   await generateFiles(
     structureDefinitions,
     structureDefinitionName,
-    '../structure_definitions/',
+    '../lib/src/systems/structure_definition_maps/structure_definitions',
     structureDefinitionCanonical,
-    '../structure_definitions/structureDefinitions.dart',
+    '../lib/src/systems/structure_definition_maps/structureDefinitions.dart',
     "import 'structure_definitions/structureDefinitions.dart';",
     'structureDefinitionMaps',
     '''"http://hl7.org/fhirpath/System.String": string,	
@@ -67,9 +67,9 @@ Future<String> main() async {
   await generateFiles(
     valueSets,
     valueSetName,
-    '../value_sets/',
+    '../lib/src/systems/value_set_maps/value_sets/',
     valueSetCanonical,
-    '../value_sets/valueSets.dart',
+    '../lib/src/systems/value_set_maps/valueSets.dart',
     "import 'value_sets/valueSets.dart';",
     'valueSetMaps',
     null,
@@ -79,9 +79,9 @@ Future<String> main() async {
   await generateFiles(
     codeSystems,
     codeSystemName,
-    '../code_systems/',
+    '../lib/src/systems/code_system_maps/code_systems/',
     codeSystemCanonical,
-    '../code_systems/codeSystems.dart',
+    '../lib/src/systems/code_system_maps/codeSystems.dart',
     "import 'code_systems/codeSystems.dart';",
     'codeSystemMaps',
     null,
@@ -194,7 +194,8 @@ Future<void> writeNamingSystems(List<NamingSystem> namingSystems) async {
         .replaceAll('.', '_')
         .replaceAll('-', '_');
     final contents = 'const $name = ${jsonEncode(namingSystem.toJson())};';
-    final fileName = 'naming_systems/$name.dart';
+    final fileName =
+        '../lib/src/systems/naming_system_maps/naming_systems/$name.dart';
     await File(fileName).writeAsString(contents);
     exportFile += 'export \'${fileName.replaceAll("naming_systems/", "")}\';\n';
 
@@ -219,8 +220,11 @@ Future<void> writeNamingSystems(List<NamingSystem> namingSystems) async {
   });
 
   mapFile += '};\n';
-  await File('naming_system_maps.dart').writeAsString(mapFile);
-  await File('naming_systems/naming_systems.dart').writeAsString(exportFile);
+  await File('../lib/src/systems/naming_system_maps/naming_system_maps.dart')
+      .writeAsString(mapFile);
+  await File(
+          '../lib/src/systems/naming_system_maps/naming_systems/naming_systems.dart')
+      .writeAsString(exportFile);
 }
 
 final fhirTypes = [
