@@ -1,5 +1,4 @@
 import 'package:fhir_r4/fhir_r4.dart';
-
 import 'fhir_validation.dart';
 
 Map<String, FhirValidationObject> matchPaths(
@@ -9,6 +8,7 @@ Map<String, FhirValidationObject> matchPaths(
 ) {
   for (var key in fhirPaths.keys) {
     final noIndexesPath = key.replaceAll(RegExp(r'\[[0-9]+\]'), '');
+    print('Checking path: $key -> $noIndexesPath');
 
     elementDefinitions?.indexWhere((element) {
       final elementPath = element.path;
@@ -24,6 +24,7 @@ Map<String, FhirValidationObject> matchPaths(
           binding: element.binding,
           constraint: element.constraint,
         );
+        print('Full match: $key -> $elementPath');
         return true;
       }
 
@@ -51,6 +52,7 @@ Map<String, FhirValidationObject> matchPaths(
               binding: element.binding,
               constraint: null,
             );
+            print('Full match (polymorphic): $key -> $tempPath');
             return true;
           } else if (noIndexesPath.startsWith(tempPath)) {
             if (fhirPathMatches.containsKey(key) &&
@@ -69,6 +71,7 @@ Map<String, FhirValidationObject> matchPaths(
                 constraint: null,
               );
             }
+            print('Partial match (polymorphic): $key -> $tempPath');
           }
         }
         return false;
@@ -90,6 +93,7 @@ Map<String, FhirValidationObject> matchPaths(
             constraint: null,
           );
         }
+        print('Partial match: $key -> $elementPath');
         return false;
       }
 
@@ -98,6 +102,7 @@ Map<String, FhirValidationObject> matchPaths(
 
     if (!fhirPathMatches.containsKey(key) && !key.endsWith('resourceType')) {
       fhirPathMatches[key] = FhirValidationObject(noIndex: noIndexesPath);
+      print('No match found: $key');
     }
   }
 

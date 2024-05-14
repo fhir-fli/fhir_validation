@@ -2,10 +2,10 @@ import 'package:fhir_r4/fhir_r4.dart';
 
 import 'fhir_validation.dart';
 
-Future<Map<String, List<String>?>> handlePartialMatches(
+Future<Map<String, dynamic>> handlePartialMatches(
   Map<String, dynamic> partialMatchMap,
   List<ElementDefinition>? elementDefinitions,
-  Map<String, List<String>?> returnMap,
+  Map<String, dynamic> returnMap,
   String startPath,
   Map<String, dynamic> mapToValidate,
 ) async {
@@ -60,6 +60,7 @@ Future<Map<String, List<String>?>> handlePartialMatches(
                           v,
                         ));
             if (newStructureDefinition != null) {
+              print('Handling partial match: $key -> $newType');
               returnMap = combineMaps(
                 returnMap,
                 await evaluateFromPaths(
@@ -75,7 +76,7 @@ Future<Map<String, List<String>?>> handlePartialMatches(
         }
       }
     } else {
-      print('Key not found $key');
+      print('Key not found in elementDefinitions: $key');
     }
   }
 

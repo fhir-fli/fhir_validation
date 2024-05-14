@@ -1,16 +1,32 @@
 import 'fhir_validation.dart';
 
-Map<String, List<String>?> addToMap(
-  Map<String, List<String>?> map,
+Map<String, dynamic> addToMap(
+  Map<String, dynamic> map,
   String startPath,
   String currentPath,
   String newItem,
+  Severity severity,
 ) {
   final path = fullPathFromStartAndCurrent(startPath, currentPath);
-  if (map.keys.contains(path) && map[path] != null && map[path]!.isNotEmpty) {
-    map[path]!.add(newItem);
+  if (map.containsKey(path)) {
+    if (map[path][severity] != null) {
+      map[path][severity]!.add(newItem);
+    } else {
+      map[path][severity] = [newItem];
+    }
   } else {
-    map[path] = [newItem];
+    map[path] = {
+      'errors': [],
+      'warnings': [],
+      'information': [],
+    };
+    map[path][severity] = [newItem];
   }
   return map;
+}
+
+enum Severity {
+  error,
+  warning,
+  information,
 }

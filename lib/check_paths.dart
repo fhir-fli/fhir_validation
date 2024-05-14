@@ -1,29 +1,31 @@
 import 'package:fhir_r4/fhir_r4.dart';
 import 'fhir_validation.dart';
 
-Future<Map<String, List<String>?>> checkPaths(
+Future<Map<String, dynamic>> checkPaths(
   Map<String, FhirValidationObject> fhirPathMatches,
   String startPath,
   Map<String, dynamic> fhirPaths,
   StructureDefinition structureDefinition,
 ) async {
-  var returnMap = <String, List<String>?>{};
+  var returnMap = <String, dynamic>{};
   final downloads = <String, dynamic>{};
   final codes = <String, List<String>>{};
 
   for (final key in fhirPathMatches.keys) {
     final FhirValidationObject value = fhirPathMatches[key]!;
-    if (value.fullMatch != null && value.fullMatch!.isNotEmpty) {
+    print('Checking path: $key -> ${value.fullMatch}');
+
+    if (value.fullMatch != null && value.fullMatch != '') {
       if (value.type != null && value.type!.isNotEmpty) {
+        print('Validating type for: $key');
         if (!isValueAValidPrimitive(value.type!, fhirPaths[key])) {
           returnMap = addToMap(
-            returnMap,
-            startPath,
-            key,
-            "This property should be a type '${value.type}' (${fhirPrimitiveToDartPrimitive(value.type!)}) but it is invalid",
-          );
+              returnMap,
+              startPath,
+              key,
+              "This property should be a type '${value.type}' (${fhirPrimitiveToDartPrimitive(value.type!)}) but it is invalid",
+              Severity.error);
         }
-
         if (value.binding?.valueSet != null) {
           if (value.binding?.strength != null &&
               value.binding!.strength !=
@@ -86,45 +88,42 @@ Future<Map<String, List<String>?>> checkPaths(
                 }
               }
             }
-
             if (codes[canonical] != null && codes[canonical]!.isNotEmpty) {
               if (!(codes[canonical]?.contains(fhirPaths[key]) ?? false)) {
                 if (value.binding!.strength ==
                     ElementDefinitionBindingStrength.required_) {
                   returnMap = addToMap(
-                    returnMap,
-                    startPath,
-                    key,
-                    await notInValueSetMessage(
-                      fhirPaths[key],
-                      value.binding?.valueSet,
-                      'but is required to be',
-                    ),
-                  );
+                      returnMap,
+                      startPath,
+                      key,
+                      await notInValueSetMessage(
+                        fhirPaths[key],
+                        value.binding?.valueSet,
+                        'but is required to be',
+                      ),
+                      Severity.error);
                 } else if (value.binding!.strength ==
                     ElementDefinitionBindingStrength.extensible) {
                   returnMap = addToMap(
-                    returnMap,
-                    startPath,
-                    key,
-                    await notInValueSetMessage(
-                      fhirPaths[key],
-                      value.binding?.valueSet,
-                      ', and it is extensible, so it probably should be',
-                    ),
-                  );
+                      returnMap,
+                      startPath,
+                      key,
+                      await notInValueSetMessage(
+                          fhirPaths[key],
+                          value.binding?.valueSet,
+                          ', and it is extensible, so it probably should be'),
+                      Severity.warning);
                 } else if (value.binding!.strength ==
                     ElementDefinitionBindingStrength.preferred) {
                   returnMap = addToMap(
-                    returnMap,
-                    startPath,
-                    key,
-                    await notInValueSetMessage(
-                      fhirPaths[key],
-                      value.binding?.valueSet,
-                      ', it is not required, but it is encouraged',
-                    ),
-                  );
+                      returnMap,
+                      startPath,
+                      key,
+                      await notInValueSetMessage(
+                          fhirPaths[key],
+                          value.binding?.valueSet,
+                          ', it is not required, but it is encouraged'),
+                      Severity.information);
                 }
               }
             }
@@ -135,19 +134,10 @@ Future<Map<String, List<String>?>> checkPaths(
 
     final constraints = value.constraint;
     for (final constraint in constraints ?? <ElementDefinitionConstraint>[]) {
-      final expression = constraint.expression;
-      final context = fhirPaths[key];
-      if (expression != null) {
-        final isValid =
-            await evaluateConstraint(expression, context, startPath);
-        if (!isValid) {
-          returnMap = addToMap(
-            returnMap,
-            startPath,
-            key,
-            'Constraint violation: ${constraint.human}',
-          );
-        }
+      if (!await evaluateConstraint(
+          constraint.expression!, fhirPaths[key], startPath)) {
+        returnMap = addToMap(returnMap, startPath, key,
+            "Constraint violated: ${constraint.human}", Severity.error);
       }
     }
   }
@@ -161,9 +151,7 @@ Future<bool> evaluateConstraint(
   // Implement your FHIRPath evaluation logic here
   // This is a placeholder example and should be replaced with actual FHIRPath evaluation logic
   try {
-    final result = walkFhirPath(
-        pathExpression: expression,
-        context: context is Map || context is List ? context : "'$context'");
+    final result = walkFhirPath(pathExpression: expression, context: context);
     if (result.isNotEmpty) {
       return result[0] == true;
     }

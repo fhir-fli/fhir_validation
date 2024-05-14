@@ -3,7 +3,7 @@ import 'fhir_validation.dart';
 Map<String, dynamic> buildPartialMatchMap(
   Map<String, FhirValidationObject> fhirPathMatches,
   String startPath,
-  Map<String, List<String>?> returnMap,
+  Map<String, dynamic> returnMap,
   Map<String, dynamic> fhirPaths,
 ) {
   final partialMatchMap = <String, dynamic>{};
@@ -35,5 +35,6 @@ Map<String, dynamic> buildPartialMatchMap(
     }
   }
 
+  print('Partial match map: $partialMatchMap');
   return partialMatchMap;
 }

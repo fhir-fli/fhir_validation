@@ -2,10 +2,10 @@ import 'package:fhir_r4/fhir_r4.dart';
 
 import 'fhir_validation.dart';
 
-Map<String, List<String>?> checkMaxCardinalityOfJson(
+Map<String, dynamic> checkMaxCardinalityOfJson(
   ElementDefinition elementDefinition,
   String key,
-  Map<String, List<String>?> returnMap,
+  Map<String, dynamic> returnMap,
   String startPath,
   Map<String, dynamic> fhirPaths,
   FhirValidationObject? fhirValidationObject,
@@ -36,7 +36,8 @@ Map<String, List<String>?> checkMaxCardinalityOfJson(
             key,
             'This path is not a list (or one of a list), although it should be. '
             'Minimum Cardinality: ${elementDefinition.min ?? "none defined"}. '
-            'Maximum Cardinality: ${elementDefinition.max ?? "none defined"}');
+            'Maximum Cardinality: ${elementDefinition.max ?? "none defined"}',
+            Severity.error);
 
         /// If instead it is just indexed, and there's a maximum Cardinality
         /// and we've exceeded it, another error, make note
@@ -49,7 +50,8 @@ Map<String, List<String>?> checkMaxCardinalityOfJson(
             'The value at this path does not match the Maximum Cardinality for this field. '
             'Minimum Cardinality: ${elementDefinition.min ?? "none defined"}. '
             'Number of items or index in this list: '
-            '${fhirPaths[key] is List ? fhirPaths[key].length : maybeIndex}');
+            '${fhirPaths[key] is List ? fhirPaths[key].length : maybeIndex}',
+            Severity.error);
       }
     } else {
       /// Then, only if it's a List, we check and see that we are under the
@@ -64,7 +66,8 @@ Map<String, List<String>?> checkMaxCardinalityOfJson(
               key,
               'The value at this path has more items than is allowed. '
               'Maximum Cardinality: ${elementDefinition.max ?? "none defined"}'
-              'Item number in this list: ${fhirPaths[key].length}');
+              'Item number in this list: ${fhirPaths[key].length}',
+              Severity.error);
         }
       }
     }
@@ -76,13 +79,21 @@ Map<String, List<String>?> checkMaxCardinalityOfJson(
       elementDefinition.max != '*' &&
       (int.tryParse(elementDefinition.max!) ?? 0) == 1) {
     if (fhirPaths[key] is List) {
-      returnMap = addToMap(returnMap, startPath, key,
-          notArrayMessage(fhirValidationObject, elementDefinition));
+      returnMap = addToMap(
+          returnMap,
+          startPath,
+          key,
+          notArrayMessage(fhirValidationObject, elementDefinition),
+          Severity.error);
     } else {
       final maybeIndex = pathIndexIfAvailable(key);
       if (maybeIndex != null) {
-        returnMap = addToMap(returnMap, startPath, key,
-            notArrayMessage(fhirValidationObject, elementDefinition));
+        returnMap = addToMap(
+            returnMap,
+            startPath,
+            key,
+            notArrayMessage(fhirValidationObject, elementDefinition),
+            Severity.error);
       }
     }
   }

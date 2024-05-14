@@ -1,10 +1,10 @@
 import 'package:fhir_r4/fhir_r4.dart';
 import 'fhir_validation.dart';
 
-Map<String, List<String>?> checkRequiredFields(
+Map<String, dynamic> checkRequiredFields(
   StructureDefinition structureDefinition,
   Map<String, dynamic> fhirPaths,
-  Map<String, List<String>?> returnMap,
+  Map<String, dynamic> returnMap,
   String startPath,
   String type,
 ) {
@@ -13,6 +13,8 @@ Map<String, List<String>?> checkRequiredFields(
           <String>[];
 
   structureDefinitionPaths.removeWhere((element) => element == null);
+
+  print('Structure definition paths: $structureDefinitionPaths');
 
   for (var element
       in structureDefinition.snapshot?.element ?? <ElementDefinition>[]) {
@@ -42,11 +44,16 @@ Map<String, List<String>?> checkRequiredFields(
             final fullPath =
                 fullPathFromStartAndCurrent(startPath, element.path ?? '');
             if (!returnMap.containsKey(fullPath)) {
-              returnMap[fullPath] = <String>[];
+              returnMap[fullPath] = {
+                Severity.error: <String>[],
+                Severity.warning: <String>[],
+                Severity.information: <String>[]
+              };
             }
-            returnMap[fullPath]!.add(
+            returnMap[fullPath][Severity.error]!.add(
                 'This property is required by the StructureDefinition but has no value. '
                 'Cardinality: ${element.min ?? "not defined"}..${element.max ?? "not defined"}');
+            print('Required field missing: $fullPath');
           }
         } else {
           if (element.path != null) {

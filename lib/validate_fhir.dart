@@ -2,11 +2,11 @@ import 'package:fhir_r4/fhir_r4.dart';
 import 'package:fhir_validation/fhir_validation.dart';
 
 // Main validation function
-Future<Map<String, List<String>?>> validateFhir({
+Future<Map<String, dynamic>> validateFhir({
   required Map<String, dynamic> resourceToValidate,
   StructureDefinition? structureDefinition,
 }) async {
-  var returnMap = <String, List<String>?>{};
+  var returnMap = <String, dynamic>{};
 
   final type = resourceToValidate['resourceType'];
   if (type == null) {

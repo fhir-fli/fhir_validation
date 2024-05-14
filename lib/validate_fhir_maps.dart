@@ -2,7 +2,7 @@ import 'package:fhir_r4/fhir_r4.dart';
 
 import 'fhir_validation.dart';
 
-Future<Map<String, List<String>?>> validateFhirMaps({
+Future<Map<String, dynamic>> validateFhirMaps({
   required Map<String, dynamic> mapToValidate,
   required StructureDefinition structureDefinition,
   required String type,
