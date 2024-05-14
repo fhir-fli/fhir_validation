@@ -31,6 +31,11 @@ Future<Map<String, dynamic>?> getNamingSystem(String url) async {
   return await _getResource(url, 'NamingSystem', namingSystemMaps);
 }
 
+Future<Map<String, dynamic>?> getProfile(String url) async {
+  return await _getResource(
+      url, 'StructureDefinition', structureDefinitionMaps);
+}
+
 /// Utility method to retrieve a resource from the given URL, checking online
 /// first and then locally if not found.
 Future<Map<String, dynamic>?> _getResource(
@@ -38,12 +43,12 @@ Future<Map<String, dynamic>?> _getResource(
   String resourceType,
   Map<String, Map<String, dynamic>> localMap,
 ) async {
-  final Map<String, dynamic>? result = await _requestFromCanonical(url);
-  if (result != null && result['resourceType'] == resourceType) {
+  final result = localMap[url];
+  if (result != null) {
     return result;
   } else {
-    final result = localMap[url];
-    if (result != null) {
+    final Map<String, dynamic>? result = await _requestFromCanonical(url);
+    if (result != null && result['resourceType'] == resourceType) {
       return result;
     } else if (url.contains('|')) {
       final newUrl = url.split('|')[0];

@@ -7,7 +7,6 @@ Future<Map<String, List<String>?>> handlePartialMatches(
   List<ElementDefinition>? elementDefinitions,
   Map<String, List<String>?> returnMap,
   String startPath,
-  bool online,
   Map<String, dynamic> mapToValidate,
 ) async {
   for (var key in partialMatchMap.keys) {
@@ -68,7 +67,6 @@ Future<Map<String, List<String>?>> handlePartialMatches(
                   StructureDefinition.fromJson(newStructureDefinition),
                   newType,
                   startOfPath,
-                  online,
                   mapToValidate,
                 ),
               );

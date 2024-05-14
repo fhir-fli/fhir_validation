@@ -1,5 +1,4 @@
 import 'package:fhir_r4/fhir_r4.dart';
-
 import 'fhir_validation.dart';
 
 Map<String, List<String>?> checkRequiredFields(
@@ -32,6 +31,13 @@ Map<String, List<String>?> checkRequiredFields(
         if (element.min != null &&
             element.min?.value != null &&
             element.min!.value! > 0) {
+          // Special handling for nested structures
+          final basePath = element.path?.split('.').first;
+          if (basePath != null &&
+              fhirPaths.keys.any((key) => key.startsWith('$basePath.'))) {
+            continue; // Skip this element if any nested structure exists
+          }
+
           if (element.path != null) {
             final fullPath =
                 fullPathFromStartAndCurrent(startPath, element.path ?? '');

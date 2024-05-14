@@ -6,7 +6,6 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
   StructureDefinition structureDefinition,
   String type,
   String startPath,
-  bool online,
   Map<String, dynamic> mapToValidate,
 ) async {
   var returnMap = <String, List<String>?>{};
@@ -19,12 +18,12 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
 
   fhirPathMatches = matchPaths(fhirPaths, elementDefinitions, fhirPathMatches);
   returnMap = await checkPaths(
-      fhirPathMatches, startPath, fhirPaths, structureDefinition, online);
+      fhirPathMatches, startPath, fhirPaths, structureDefinition);
 
   final partialMatchMap =
       buildPartialMatchMap(fhirPathMatches, startPath, returnMap, fhirPaths);
-  returnMap = await handlePartialMatches(partialMatchMap, elementDefinitions,
-      returnMap, startPath, online, mapToValidate);
+  returnMap = await handlePartialMatches(
+      partialMatchMap, elementDefinitions, returnMap, startPath, mapToValidate);
 
   returnMap = checkRequiredFields(
       structureDefinition, fhirPaths, returnMap, startPath, type);

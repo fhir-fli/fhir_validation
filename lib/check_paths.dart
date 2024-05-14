@@ -1,5 +1,4 @@
 import 'package:fhir_r4/fhir_r4.dart';
-
 import 'fhir_validation.dart';
 
 Future<Map<String, List<String>?>> checkPaths(
@@ -7,17 +6,15 @@ Future<Map<String, List<String>?>> checkPaths(
   String startPath,
   Map<String, dynamic> fhirPaths,
   StructureDefinition structureDefinition,
-  bool online,
 ) async {
   var returnMap = <String, List<String>?>{};
   final downloads = <String, dynamic>{};
   final codes = <String, List<String>>{};
 
   for (final key in fhirPathMatches.keys) {
-    final FhirValidationObject value =
-        fhirPathMatches[key] as FhirValidationObject;
+    final FhirValidationObject value = fhirPathMatches[key]!;
     if (value.fullMatch != null && value.fullMatch != '') {
-      if (value.type != null) {
+      if (value.type != null && value.type!.isNotEmpty) {
         if (!isValueAValidPrimitive(value.type!, fhirPaths[key])) {
           returnMap = addToMap(
               returnMap,
@@ -33,13 +30,11 @@ Future<Map<String, List<String>?>> checkPaths(
             Map<String, dynamic>? valueSetMap;
             var canonical = value.binding!.valueSet.toString();
 
-            if (online) {
-              if (downloads.containsKey(canonical)) {
-                valueSetMap = downloads[canonical];
-              } else {
-                valueSetMap = await getValueSet(canonical);
-                downloads[canonical] = valueSetMap;
-              }
+            if (downloads.containsKey(canonical)) {
+              valueSetMap = downloads[canonical];
+            } else {
+              valueSetMap = await getValueSet(canonical);
+              downloads[canonical] = valueSetMap;
             }
 
             if (valueSetMap == null) {
@@ -66,25 +61,23 @@ Future<Map<String, List<String>?>> checkPaths(
                     Map<String, dynamic>? codeSystemMap;
                     canonical = include.system.toString();
 
-                    if (online) {
-                      if (downloads.containsKey(include.system.toString())) {
-                        codeSystemMap = downloads[include.system];
-                      } else {
-                        codeSystemMap = await getCodeSystem(canonical);
-                        downloads[canonical] = codeSystemMap;
-                      }
+                    if (downloads.containsKey(include.system.toString())) {
+                      codeSystemMap = downloads[include.system];
+                    } else {
+                      codeSystemMap = await getCodeSystem(canonical);
+                      downloads[canonical] = codeSystemMap;
+                    }
 
-                      if (codeSystemMap == null) {
-                        codeSystemMap = await getCodeSystem(canonical);
-                      }
-                      if (codeSystemMap != null) {
-                        final codeSystem = CodeSystem.fromJson(codeSystemMap);
-                        for (var concept
-                            in codeSystem.concept ?? <CodeSystemConcept>[]) {
-                          if (concept.code != null) {
-                            codes[canonical] ??= [];
-                            codes[canonical]!.add(concept.code.toString());
-                          }
+                    if (codeSystemMap == null) {
+                      codeSystemMap = await getCodeSystem(canonical);
+                    }
+                    if (codeSystemMap != null) {
+                      final codeSystem = CodeSystem.fromJson(codeSystemMap);
+                      for (var concept
+                          in codeSystem.concept ?? <CodeSystemConcept>[]) {
+                        if (concept.code != null) {
+                          codes[canonical] ??= [];
+                          codes[canonical]!.add(concept.code.toString());
                         }
                       }
                     }
@@ -116,7 +109,7 @@ Future<Map<String, List<String>?>> checkPaths(
                           value.binding?.valueSet,
                           ', and it is extensible, so it probably should be'));
                 } else if (value.binding!.strength ==
-                    ElementDefinitionBindingStrength.extensible) {
+                    ElementDefinitionBindingStrength.preferred) {
                   returnMap = addToMap(
                       returnMap,
                       startPath,
@@ -132,8 +125,10 @@ Future<Map<String, List<String>?>> checkPaths(
         }
       }
     }
-    final constraints = fhirPathMatches[key]?.constraint;
+
+    final constraints = value.constraint;
     for (final constraint in constraints ?? <ElementDefinitionConstraint>[]) {
+      // print('Constraint: $constraint');
       // Implement your logic to validate the expression here
     }
   }

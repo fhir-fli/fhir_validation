@@ -7,6 +7,7 @@ export 'check_paths.dart';
 export 'check_required_fields.dart';
 export 'combine_maps.dart';
 export 'evaluate_from_paths.dart';
+export 'extract_profiles.dart';
 export 'fhir_paths_from_map.dart';
 export 'fhir_primitive_to_dart_primitive.dart';
 export 'fhir_validation_object.dart';
