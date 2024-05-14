@@ -308,21 +308,21 @@ Map<String, List<String>?> _addInvalidValueMessage(
 }
 
 /// Function to request a resource from a canonical URL.
-Future<Map<String, dynamic>?> requestFromCanonical(String canonical,
-    [Client? client]) async {
-  try {
-    final response = await (client?.get(Uri.parse(canonical),
-            headers: {'Accept': 'application/fhir+json'}) ??
-        get(Uri.parse(canonical),
-            headers: {'Accept': 'application/fhir+json'}));
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    }
-  } catch (e) {
-    // Handle exception or logging.
-  }
-  return null;
-}
+// Future<Map<String, dynamic>?> requestFromCanonical(String canonical,
+//     [Client? client]) async {
+//   try {
+//     final response = await (client?.get(Uri.parse(canonical),
+//             headers: {'Accept': 'application/fhir+json'}) ??
+//         get(Uri.parse(canonical),
+//             headers: {'Accept': 'application/fhir+json'}));
+//     if (response.statusCode == 200) {
+//       return jsonDecode(response.body);
+//     }
+//   } catch (e) {
+//     // Handle exception or logging.
+//   }
+//   return null;
+// }
 
 /// Checks the cardinality of a given JSON element and updates the
 /// returnMap with validation errors if the cardinality rules are violated.
