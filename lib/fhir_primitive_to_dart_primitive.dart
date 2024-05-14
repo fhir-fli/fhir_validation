@@ -1,4 +1,5 @@
 String fhirPrimitiveToDartPrimitive(String primitiveClass) {
+  primitiveClass = primitiveClass.toLowerCase();
   switch (primitiveClass) {
     case 'base64binary':
       return 'string';
@@ -12,7 +13,7 @@ String fhirPrimitiveToDartPrimitive(String primitiveClass) {
       return 'string';
     case 'decimal':
       return 'double';
-    case 'dateTime':
+    case 'datetime':
       return 'string';
     case 'uri':
       return 'string';
@@ -32,11 +33,11 @@ String fhirPrimitiveToDartPrimitive(String primitiveClass) {
       return 'string';
     case 'oid':
       return 'string';
-    case 'positiveInt':
+    case 'positiveint':
       return 'int';
     case 'time':
       return 'string';
-    case 'unsignedInt':
+    case 'unsignedint':
       return 'int';
     case 'uuid':
       return 'string';

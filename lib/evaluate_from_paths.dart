@@ -1,5 +1,4 @@
 import 'package:fhir_r4/fhir_r4.dart';
-
 import 'fhir_validation.dart';
 
 Future<Map<String, List<String>?>> evaluateFromPaths(
@@ -12,30 +11,22 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
 ) async {
   var returnMap = <String, List<String>?>{};
 
-  /// This is because we don't do anything for the value "resourceType" in the
-  /// json map, and because it's not a listed field in the StructureDefinition
-  if (fhirPaths['$type.resourceType'] != null &&
-      fhirPaths['$type.resourceType'] == type) {
-    fhirPaths.removeWhere((key, value) => key == '$type.resourceType');
-  }
+  // Remove resourceType as it's not in the StructureDefinition
+  fhirPaths.removeWhere((key, value) => key.endsWith('.resourceType'));
+
   var fhirPathMatches = <String, FhirValidationObject>{};
   final elementDefinitions = structureDefinition.snapshot?.element;
 
-  /// Look at every key in the map
+  // Look at every key in the map
   for (var key in fhirPaths.keys) {
-    /// remove all indexes for the moment
     final noIndexesPath = key.replaceAll(RegExp(r'\[[0-9]+\]'), '');
 
-    /// check if there is a path in the current StructureDefinition that
-    /// corresponds to this path
     var index = elementDefinitions?.indexWhere((element) {
       final elementPath = element.path;
-      if (elementPath == null) {
-        return false;
-      }
+      if (elementPath == null) return false;
 
-      /// If there is, then we've found the proper index
-      else if (elementPath == noIndexesPath) {
+      // Exact match
+      if (elementPath == noIndexesPath) {
         fhirPathMatches = addToFhirPathMatches(
           fhirPathMatches: fhirPathMatches,
           key: key,
@@ -48,47 +39,13 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
         return true;
       }
 
-      /// If not, this could still be the index because there are some polymorphic
-      /// types that end in [x]. We check if it's one of those, and just to be
-      /// safe check that there is a list of types that this polymorphic value
-      /// could be.
-      else if (elementPath.endsWith('[x]') &&
+      // Polymorphic types handling
+      if (elementPath.endsWith('[x]') &&
           element.type != null &&
           element.type!.isNotEmpty) {
-        /// Split the element's path into a list, andm then remove the "[x]"
-        /// from the end, so
-        ///
-        /// "Bundle.entry[3].resource.parameter[2].valueCoding" would be
-        /// stripped of index to become:
-        /// "Bundle.entry.resource.parameter.valueCoding"
-        ///
-        /// Then, while looking through the paths in the elements, it would
-        /// come along one that looked like
-        /// "Bundle.entry.resource.parameter.value[x]"
-        /// which would then become
-        /// ["Bundle", "entry", "resource", "parameter", "value[x]"]
-        ///
-        /// And then we just remove the "[x]" from the last value to get the
-        /// fieldName to test
         final pathsList = elementPath.split('.');
         var fieldName = pathsList.last.replaceAll('[x]', '');
 
-        /// If it is, we go through each time listed in the element. We first
-        /// remove the last value inj the list, so from our example above
-        ///
-        /// ["Bundle", "entry", "resource", "parameter", "value[x]"] ->
-        /// ["Bundle", "entry", "resource", "parameter", ]
-        ///
-        /// and fieldName = "value"
-        ///
-        /// Then we create the new last entry in the path, we just do this by
-        /// adding fieldName (value) in our example, to the current element.type
-        /// where we change the case of the first letter because that's how
-        /// FHIR works.
-        ///
-        /// So if fieldName == "value" and the list of codes includes
-        /// "boolean" and "dateTime", then we would create the new fields as
-        /// "valueBoolean" and "valueDateTime"
         for (var type in element.type!) {
           pathsList
             ..removeLast()
@@ -97,7 +54,6 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
 
           final tempPath = pathsList.join('.');
 
-          /// We are now finally ready to recreate the path.
           if (noIndexesPath == tempPath) {
             fhirPathMatches = addToFhirPathMatches(
               fhirPathMatches: fhirPathMatches,
@@ -106,17 +62,16 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
               noIndex: noIndexesPath,
               fullMatch: pathsList.join('.'),
               binding: element.binding,
-              constraint: null, //element.constraint,
+              constraint: null,
             );
             return true;
           } else if (noIndexesPath.startsWith(tempPath)) {
-            if (fhirPathMatches.keys.contains(key) &&
+            if (fhirPathMatches.containsKey(key) &&
                 fhirPathMatches[key]!.partialMatch != null &&
                 fhirPathMatches[key]!.partialMatch!.length <
                     elementPath.length) {
               fhirPathMatches[key]!.partialMatch = elementPath;
             } else {
-              /// If there's no key yet in the Map, we create one
               fhirPathMatches = addToFhirPathMatches(
                 fhirPathMatches: fhirPathMatches,
                 key: key,
@@ -124,89 +79,41 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
                 noIndex: noIndexesPath,
                 partialMatch: elementPath,
                 binding: element.binding,
-                constraint: null, //element.constraint,
-              );
-            }
-          }
-        }
-        return false;
-      } else {
-        /// Otherwise, since we're running through all of the paths anyway,
-        /// we're going to check if there's a partial patch so that we don't
-        /// have to run through them all again later
-        if (noIndexesPath.startsWith(elementPath)) {
-          /// We look to see if the fhirPathMatches already has the key, if
-          /// not, we create a new entry. If it does have a key, we look to see
-          /// the length of the partialMatch (when created, all partialMatches
-          /// have an empty string or value, never null). If the current
-          /// partialMatch is shorter than the elementPath, the elementPath
-          /// is closer to the full path and replaces the old partialMatch Value
-          /// For instance
-          ///
-          /// "Bundle.entry[9].resource" is the current partialMatch in
-          /// fhirPathMatches. However, the current elementPath is
-          /// "Bundle.entry[9].resource.valueCoding", because this is longer,
-          /// the partialMatch is updated
-          if (fhirPathMatches.keys.contains(key) &&
-              fhirPathMatches[key]!.partialMatch != null &&
-              fhirPathMatches[key]!.partialMatch!.length < elementPath.length) {
-            fhirPathMatches[key]!.partialMatch = elementPath;
-          } else {
-            /// If there's no key yet in the Map, we create one
-            fhirPathMatches = addToFhirPathMatches(
-              fhirPathMatches: fhirPathMatches,
-              key: key,
-              type: element.type,
-              noIndex: noIndexesPath,
-              partialMatch: elementPath,
-              binding: element.binding,
-              constraint: null, //element.constraint,
-            );
-          }
-        }
-
-        /// Similar to above, there may still be a partial match if the entry
-        /// is polymorphic, so we have to do some messing around, remove the
-        /// final "[x]" from the String, test it against the path, etc.
-        else if (elementPath.endsWith('[x]') &&
-            element.type != null &&
-            element.type!.isNotEmpty) {
-          final pathsList = elementPath.split('.');
-          var fieldName = pathsList.last.replaceAll('[x]', '');
-          for (var type in element.type!) {
-            pathsList
-              ..removeLast()
-              ..add('$fieldName'
-                  '${type.code.toString().substring(0, 1).toUpperCase()}'
-                  '${type.code.toString().substring(1)}');
-
-            final tempPaths = pathsList.join('.');
-
-            /// However, in this case, we're not looking for an exact match,
-            /// because if there was we should have found it above.
-            if (noIndexesPath.contains(tempPaths)) {
-              fhirPathMatches = addToFhirPathMatches(
-                fhirPathMatches: fhirPathMatches,
-                key: key,
-                type: element.type,
-                noIndex: noIndexesPath,
-                partialMatch: tempPaths,
-                binding: element.binding,
-                constraint: null, //element.constraint,
+                constraint: null,
               );
             }
           }
         }
         return false;
       }
+
+      // Partial match handling
+      if (noIndexesPath.startsWith(elementPath)) {
+        if (fhirPathMatches.containsKey(key) &&
+            fhirPathMatches[key]!.partialMatch != null &&
+            fhirPathMatches[key]!.partialMatch!.length < elementPath.length) {
+          fhirPathMatches[key]!.partialMatch = elementPath;
+        } else {
+          fhirPathMatches = addToFhirPathMatches(
+            fhirPathMatches: fhirPathMatches,
+            key: key,
+            type: element.type,
+            noIndex: noIndexesPath,
+            partialMatch: elementPath,
+            binding: element.binding,
+            constraint: null,
+          );
+        }
+        return false;
+      }
+
+      return false;
     });
 
-    if (!fhirPathMatches.keys.contains(key) && !key.endsWith('resourceType')) {
+    if (!fhirPathMatches.containsKey(key) && !key.endsWith('resourceType')) {
       fhirPathMatches[key] = FhirValidationObject(noIndex: noIndexesPath);
     }
 
-    /// If there is not, then it's possible this is a Resource or another
-    /// StructureDefinition that we'll have to look in
     if (index != null && index != -1) {
       returnMap = checkMaxCardinalityOfJson(elementDefinitions![index], key,
           returnMap, startPath, fhirPaths, fhirPathMatches[key]);
@@ -216,9 +123,6 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
   final downloads = <String, dynamic>{};
   final codes = <String, List<String>>{};
 
-  /// We're going to check for bindings to various ValueSets, first there's
-  /// a bunch of checking just to make sure it's available and not null
-  ///
   for (final key in fhirPathMatches.keys) {
     final FhirValidationObject value =
         fhirPathMatches[key] as FhirValidationObject;
@@ -236,23 +140,13 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
           if (value.binding?.strength != null &&
               value.binding!.strength !=
                   ElementDefinitionBindingStrength.example) {
-            /// I changed my mind. We're going to look online first since that
-            /// version will probably be the most updated. If we can't find it
-            /// online, OR we specifically state offline, then we look locally
             Map<String, dynamic>? valueSetMap;
-
-            /// First get the canonical (remember, while this is usually a url
-            /// where it can be accessed, that's not always true)
             var canonical = value.binding!.valueSet.toString();
 
-            /// As long as we're online
             if (online) {
-              /// We check and see if it's already been downloaded, if it has,
-              /// just use that
-              if (downloads.keys.contains(canonical)) {
+              if (downloads.containsKey(canonical)) {
                 valueSetMap = downloads[canonical];
               } else {
-                /// Otherwise, try and request it
                 valueSetMap = await getValueSet(canonical);
                 if (valueSetMap != null) {
                   downloads[canonical] = valueSetMap;
@@ -265,32 +159,19 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
               }
             }
 
-            /// Only if we haven't found it yet
             if (valueSetMap == null) {
-              /// We try and find it in the local map
               valueSetMap = await getValueSet(canonical);
             }
 
             ValueSet? valueSet;
 
             if (valueSetMap != null) {
-              /// We're going to go through the ValueSet and make a List of any
-              /// codes that we find
               valueSet = ValueSet.fromJson(valueSetMap);
             }
 
-            /// We only have to go through this ValueSet if we don't already
-            /// have the codes
-            if (!codes.keys.contains(canonical)) {
+            if (!codes.containsKey(canonical)) {
               codes[canonical] = [];
 
-              /// For each CodeSystem that might be included in the ValueSet
-              /// we look to see if individual codes are listed first. If
-              /// they are, these are the only codes that we need to include
-              /// from that CodeSystem. However, sometimes it's just the
-              /// Canonical for the CodeSystem and we have to include the
-              /// entire thing. For these we once again have to go and make
-              /// a request to find it.
               for (var include
                   in valueSet?.compose?.include ?? <ValueSetInclude>[]) {
                 if (include.concept?.isNotEmpty ?? false) {
@@ -303,14 +184,10 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
                   Map<String, dynamic>? codeSystemMap;
                   canonical = include.system.toString();
 
-                  /// As long as we're online
                   if (online) {
-                    /// We check and see if it's already been downloaded, if it has,
-                    /// just use that
-                    if (downloads.keys.contains(include.system.toString())) {
+                    if (downloads.containsKey(include.system.toString())) {
                       codeSystemMap = downloads[include.system];
                     } else {
-                      /// Otherwise, try and request it
                       codeSystemMap = await getCodeSystem(canonical);
                       if (codeSystemMap != null) {
                         downloads[canonical] = codeSystemMap;
@@ -322,9 +199,7 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
                       }
                     }
 
-                    /// only if we haven't found it yet
                     if (codeSystemMap == null) {
-                      /// We try and find it in the local map
                       codeSystemMap = await getCodeSystem(canonical);
                     }
 
@@ -384,13 +259,7 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
     }
     final constraints = fhirPathMatches[key]?.constraint;
     for (final constraint in constraints ?? <ElementDefinitionConstraint>[]) {
-      // print(
-      //     '${fullPathFromStartAndCurrent(startPath, key)}.where(${constraint.expression})');
-      // print(walkFhirPath(
-      //     context: mapToValidate,
-      //     pathExpression:
-      //         '${fullPathFromStartAndCurrent(startPath, key)}.where(${constraint.expression})'
-      //             .replaceAll('[x]', '')));
+      // TODO: Implement constraint validation logic
     }
   }
 
@@ -409,13 +278,13 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
         partialMatch = partialMatch.substring(0, partialMatch.length - 1);
       }
       if (partialMatch == startPath) {
-        if (!returnMap.keys.contains(key)) {
+        if (!returnMap.containsKey(key)) {
           returnMap[key] = <String>[];
         }
         returnMap[key]!.add(
             "Unrecognized property, '$key', not found in the StructureDefinition");
       } else {
-        if (!partialMatchMap.keys.contains(partialMatch)) {
+        if (!partialMatchMap.containsKey(partialMatch)) {
           partialMatchMap[partialMatch] = <String, dynamic>{};
         }
         partialMatchMap[partialMatch][key] = fhirPaths[key];
@@ -423,20 +292,15 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
     }
   }
 
-  /// remove all indexes for the moment
   for (var key in partialMatchMap.keys) {
     final noIndexesPath = key.replaceAll(RegExp(r'\[[0-9]+\]'), '');
     final elementDefinitionIndex = elementDefinitions
         ?.indexWhere((element) => element.path == noIndexesPath);
 
-    /// ToDo(Dokotela): handle if unable to find
     if (elementDefinitionIndex != null && elementDefinitionIndex != -1) {
       final types = elementDefinitions?[elementDefinitionIndex].type;
 
-      /// ToDo(Dokotela): handle for all cases
-      if (types == null) {
-      } else if (types.isEmpty) {
-      } else {
+      if (types != null && types.isNotEmpty) {
         String? newType;
         if (types.length == 1) {
           newType = types.first.code?.toString();
@@ -451,6 +315,7 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
         }
 
         if (newType == null) {
+          continue;
         } else {
           if (newType == 'Resource') {
             final String resourceType =
@@ -461,6 +326,7 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
                 resourceType != '' ? partialMatchMap[key][resourceType] : null;
           }
           if (newType == null) {
+            continue;
           } else {
             final newStructureDefinition =
                 await getStructureDefinition(newType);
@@ -497,31 +363,18 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
     }
   }
 
-  /// This feels like it should be easier. I need all of the paths in the
-  /// current StructureDefinition. This is where we're going to store paths
-  /// that still might be required. We do this because there are some subfields
-  /// that are required, but only if a superfield is present, and that superfield
-  /// may not be required. Por ejemplo:
-  ///
-  /// A Narrative is an optional field in all Resources. However, if there is
-  /// a Narrative object as part of that resource, it is required to have a
-  /// status.
   final structureDefinitionPaths =
       structureDefinition.snapshot?.element.map((e) => e.path).toList() ??
           <String>[];
 
-  /// While there shouldn't be any null values, we remove just in case
   structureDefinitionPaths.removeWhere((element) => element == null);
 
-  /// Then we go back though all of the definitions, again
   for (var element
       in structureDefinition.snapshot?.element ?? <ElementDefinition>[]) {
     if (structureDefinitionPaths.contains(element.path) &&
         element.path != type) {
       bool found = false;
 
-      /// Once the elementDefinition path is found, we mark it, but don't have
-      /// to do anything more for it at the moment
       for (var key in fhirPaths.keys) {
         if (key.replaceAll(RegExp(r'\[[0-9]+\]'), '') == element.path) {
           found = true;
@@ -529,16 +382,14 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
         }
       }
 
-      /// If the current Path is not found
       if (!found) {
-        /// But it is required, then we note this as an error
         if (element.min != null &&
             element.min?.value != null &&
             element.min!.value! > 0) {
           if (element.path != null) {
             final fullPath =
                 fullPathFromStartAndCurrent(startPath, element.path ?? '');
-            if (!returnMap.keys.contains(fullPath)) {
+            if (!returnMap.containsKey(fullPath)) {
               returnMap[fullPath] = <String>[];
             }
             returnMap[fullPath]!.add(
@@ -546,16 +397,13 @@ Future<Map<String, List<String>?>> evaluateFromPaths(
                 'Cardinality: ${element.min ?? "not defined"}..${element.max ?? "not defined"}');
           }
         } else {
-          /// However if it's not required AND we don't find it, we don't need
-          /// to worry about it AND we don't need to worry about anything that
-          /// may be a subfield of that path
           if (element.path != null) {
             structureDefinitionPaths
                 .removeWhere((e) => e!.startsWith(element.path!));
           }
         }
       } else {
-        // TODO(Dokotela): ensure the proper Cardinality of > 0
+        // Ensure the proper Cardinality of > 0
       }
     }
   }

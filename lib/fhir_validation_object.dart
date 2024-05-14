@@ -26,6 +26,11 @@ class FhirValidationObject {
         'binding': binding?.toJson(),
         'constraint': constraint?.map((e) => e.toJson()).toList(),
       };
+
+  @override
+  String toString() {
+    return toJson().toString();
+  }
 }
 
 Map<String, FhirValidationObject> addToFhirPathMatches({

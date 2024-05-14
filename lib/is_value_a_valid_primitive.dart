@@ -1,6 +1,7 @@
 import 'package:fhir_primitives/fhir_primitives.dart';
 
 bool isValueAValidPrimitive(String primitiveClass, dynamic value) {
+  primitiveClass = primitiveClass.toLowerCase();
   try {
     switch (primitiveClass) {
       case 'base64binary':
@@ -15,7 +16,7 @@ bool isValueAValidPrimitive(String primitiveClass, dynamic value) {
         return FhirDate.fromJson(value).isValid;
       case 'decimal':
         return FhirDecimal.fromJson(value).isValid;
-      case 'dateTime':
+      case 'datetime':
         return FhirDateTime.fromJson(value).isValid;
       case 'uri':
         return FhirUri.fromJson(value).isValid;
@@ -35,11 +36,11 @@ bool isValueAValidPrimitive(String primitiveClass, dynamic value) {
         return FhirMarkdown.fromJson(value).isValid;
       case 'oid':
         return FhirOid.fromJson(value).isValid;
-      case 'positiveInt':
+      case 'positiveint':
         return FhirPositiveInt.fromJson(value).isValid;
       case 'time':
         return FhirTime.fromJson(value).isValid;
-      case 'unsignedInt':
+      case 'unsignedint':
         return FhirUnsignedInt.fromJson(value).isValid;
       case 'uuid':
         return FhirUuid.fromJson(value).isValid;
