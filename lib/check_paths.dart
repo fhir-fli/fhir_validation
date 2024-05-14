@@ -13,16 +13,17 @@ Future<Map<String, List<String>?>> checkPaths(
 
   for (final key in fhirPathMatches.keys) {
     final FhirValidationObject value = fhirPathMatches[key]!;
-    if (value.fullMatch != null && value.fullMatch != '') {
+    if (value.fullMatch != null && value.fullMatch!.isNotEmpty) {
       if (value.type != null && value.type!.isNotEmpty) {
         if (!isValueAValidPrimitive(value.type!, fhirPaths[key])) {
           returnMap = addToMap(
-              returnMap,
-              startPath,
-              key,
-              "This property should be a type '${value.type}' "
-              "(${fhirPrimitiveToDartPrimitive(value.type!)}) but it is invalid");
+            returnMap,
+            startPath,
+            key,
+            "This property should be a type '${value.type}' (${fhirPrimitiveToDartPrimitive(value.type!)}) but it is invalid",
+          );
         }
+
         if (value.binding?.valueSet != null) {
           if (value.binding?.strength != null &&
               value.binding!.strength !=
@@ -85,39 +86,45 @@ Future<Map<String, List<String>?>> checkPaths(
                 }
               }
             }
+
             if (codes[canonical] != null && codes[canonical]!.isNotEmpty) {
               if (!(codes[canonical]?.contains(fhirPaths[key]) ?? false)) {
                 if (value.binding!.strength ==
                     ElementDefinitionBindingStrength.required_) {
                   returnMap = addToMap(
-                      returnMap,
-                      startPath,
-                      key,
-                      await notInValueSetMessage(
-                        fhirPaths[key],
-                        value.binding?.valueSet,
-                        'but is required to be',
-                      ));
+                    returnMap,
+                    startPath,
+                    key,
+                    await notInValueSetMessage(
+                      fhirPaths[key],
+                      value.binding?.valueSet,
+                      'but is required to be',
+                    ),
+                  );
                 } else if (value.binding!.strength ==
                     ElementDefinitionBindingStrength.extensible) {
                   returnMap = addToMap(
-                      returnMap,
-                      startPath,
-                      key,
-                      await notInValueSetMessage(
-                          fhirPaths[key],
-                          value.binding?.valueSet,
-                          ', and it is extensible, so it probably should be'));
+                    returnMap,
+                    startPath,
+                    key,
+                    await notInValueSetMessage(
+                      fhirPaths[key],
+                      value.binding?.valueSet,
+                      ', and it is extensible, so it probably should be',
+                    ),
+                  );
                 } else if (value.binding!.strength ==
                     ElementDefinitionBindingStrength.preferred) {
                   returnMap = addToMap(
-                      returnMap,
-                      startPath,
-                      key,
-                      await notInValueSetMessage(
-                          fhirPaths[key],
-                          value.binding?.valueSet,
-                          ', it is not required, but it is encouraged'));
+                    returnMap,
+                    startPath,
+                    key,
+                    await notInValueSetMessage(
+                      fhirPaths[key],
+                      value.binding?.valueSet,
+                      ', it is not required, but it is encouraged',
+                    ),
+                  );
                 }
               }
             }
@@ -128,10 +135,41 @@ Future<Map<String, List<String>?>> checkPaths(
 
     final constraints = value.constraint;
     for (final constraint in constraints ?? <ElementDefinitionConstraint>[]) {
-      // print('Constraint: $constraint');
-      // Implement your logic to validate the expression here
+      final expression = constraint.expression;
+      final context = fhirPaths[key];
+      if (expression != null) {
+        final isValid =
+            await evaluateConstraint(expression, context, startPath);
+        if (!isValid) {
+          returnMap = addToMap(
+            returnMap,
+            startPath,
+            key,
+            'Constraint violation: ${constraint.human}',
+          );
+        }
+      }
     }
   }
 
   return returnMap;
+}
+
+// Utility function to evaluate FHIRPath expressions
+Future<bool> evaluateConstraint(
+    String expression, dynamic context, String startPath) async {
+  // Implement your FHIRPath evaluation logic here
+  // This is a placeholder example and should be replaced with actual FHIRPath evaluation logic
+  try {
+    final result = walkFhirPath(
+        pathExpression: expression,
+        context: context is Map || context is List ? context : "'$context'");
+    if (result.isNotEmpty) {
+      return result[0] == true;
+    }
+    return false;
+  } catch (e) {
+    // Handle exception or logging
+    return false;
+  }
 }

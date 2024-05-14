@@ -39,8 +39,7 @@ Future<Map<String, List<String>?>> validateFhir({
       final definitionMap = await getStructureDefinition(type);
       if (definitionMap == null) {
         returnMap[type] = [
-          'No StructureDefinition was found for this Resource, which is '
-              'a resourceType of: $type'
+          'No StructureDefinition was found for this Resource, which is a resourceType of: $type'
         ];
       } else {
         structureDefinition = StructureDefinition.fromJson(definitionMap);
@@ -49,13 +48,11 @@ Future<Map<String, List<String>?>> validateFhir({
     if (structureDefinition == null) {
       if (returnMap[type] == null || returnMap[type]!.isEmpty) {
         returnMap[type] = [
-          'No StructureDefinition was found for this Resource, which is '
-              'a resourceType of: $type'
+          'No StructureDefinition was found for this Resource, which is a resourceType of: $type'
         ];
       } else {
-        returnMap[type]!
-            .add('No StructureDefinition was found for this Resource, which is '
-                'a resourceType of: $type');
+        returnMap[type]!.add(
+            'No StructureDefinition was found for this Resource, which is a resourceType of: $type');
       }
     } else {
       returnMap = combineMaps(
