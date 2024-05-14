@@ -49,9 +49,9 @@ Future<String> main() async {
   await generateFiles(
     structureDefinitions,
     structureDefinitionName,
-    '../lib/src/systems/structure_definition_maps/structure_definitions',
+    '../lib/src/systems/structure_definition_maps/structure_definitions/',
     structureDefinitionCanonical,
-    '../lib/src/systems/structure_definition_maps/structureDefinitions.dart',
+    '../lib/src/systems/structure_definition_maps/structure_definitions/structureDefinitions.dart',
     "import 'structure_definitions/structureDefinitions.dart';",
     'structureDefinitionMaps',
     '''"http://hl7.org/fhirpath/System.String": string,	
@@ -61,7 +61,7 @@ Future<String> main() async {
   "http://hl7.org/fhirpath/System.Decimal": decimal,	
   "http://hl7.org/fhirpath/System.Integer": integer,	
   "http://hl7.org/fhirpath/System.Time": time,''',
-    '../structure_definition_maps.dart',
+    '../lib/src/systems/structure_definition_maps/structure_definition_maps.dart',
   );
 
   await generateFiles(
@@ -69,11 +69,11 @@ Future<String> main() async {
     valueSetName,
     '../lib/src/systems/value_set_maps/value_sets/',
     valueSetCanonical,
-    '../lib/src/systems/value_set_maps/valueSets.dart',
+    '../lib/src/systems/value_set_maps/value_sets/valueSets.dart',
     "import 'value_sets/valueSets.dart';",
     'valueSetMaps',
     null,
-    '../value_set_maps.dart',
+    '../lib/src/systems/value_set_maps/value_set_maps.dart',
   );
 
   await generateFiles(
@@ -81,11 +81,11 @@ Future<String> main() async {
     codeSystemName,
     '../lib/src/systems/code_system_maps/code_systems/',
     codeSystemCanonical,
-    '../lib/src/systems/code_system_maps/codeSystems.dart',
+    '../lib/src/systems/code_system_maps/code_systems/codeSystems.dart',
     "import 'code_systems/codeSystems.dart';",
     'codeSystemMaps',
     null,
-    '../code_system_maps.dart',
+    '../lib/src/systems/code_system_maps/code_system_maps.dart',
   );
 
   return '';
