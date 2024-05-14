@@ -42,8 +42,15 @@ Future<Map<String, dynamic>?> _getResource(
   if (result != null && result['resourceType'] == resourceType) {
     return result;
   } else {
-    return localMap[url];
+    final result = localMap[url];
+    if (result != null) {
+      return result;
+    } else if (url.contains('|')) {
+      final newUrl = url.split('|')[0];
+      return _getResource(newUrl, resourceType, localMap);
+    }
   }
+  return null;
 }
 
 /// Function to request a resource from a canonical URL.

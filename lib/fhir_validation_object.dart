@@ -1,4 +1,5 @@
 import 'package:fhir_r4/fhir_r4.dart';
+import 'package:fhir_validation/fhir_validation.dart';
 
 class FhirValidationObject {
   FhirValidationObject({
@@ -63,7 +64,7 @@ Map<String, FhirValidationObject> addToFhirPathMatches({
     if (type != null && type.isNotEmpty) {
       if (type.length == 1) {
         fhirPathMatches[key]!.type =
-            primitiveTypes[type.first.code.toString()] ??
+            canonicalToPrimitiveType[type.first.code.toString()] ??
                 type.first.code.toString();
       }
     }
@@ -73,13 +74,3 @@ Map<String, FhirValidationObject> addToFhirPathMatches({
   }
   return fhirPathMatches;
 }
-
-const primitiveTypes = {
-  'http://hl7.org/fhirpath/System.Boolean': 'boolean',
-  'http://hl7.org/fhirpath/System.Date': 'date',
-  'http://hl7.org/fhirpath/System.DateTime': 'dateTime',
-  'http://hl7.org/fhirpath/System.Decimal': 'decimal',
-  'http://hl7.org/fhirpath/System.Integer': 'integer',
-  'http://hl7.org/fhirpath/System.Time': 'time',
-  'http://hl7.org/fhirpath/System.String': 'string',
-};
