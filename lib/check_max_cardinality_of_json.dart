@@ -2,10 +2,10 @@ import 'package:fhir_r4/fhir_r4.dart';
 
 import 'fhir_validation.dart';
 
-Map<String, dynamic> checkMaxCardinalityOfJson(
+ValidationResults checkMaxCardinalityOfJson(
   ElementDefinition elementDefinition,
   String key,
-  Map<String, dynamic> returnMap,
+  ValidationResults results,
   String startPath,
   Map<String, dynamic> fhirPaths,
   FhirValidationObject? fhirValidationObject,
@@ -30,8 +30,7 @@ Map<String, dynamic> checkMaxCardinalityOfJson(
       /// if maybeIndex == null, it's not a list, or indexed, so this is
       /// an error
       if (maybeIndex == null) {
-        returnMap = addToMap(
-            returnMap,
+        results.addResult(
             startPath,
             key,
             'This path is not a list (or one of a list), although it should be. '
@@ -43,8 +42,7 @@ Map<String, dynamic> checkMaxCardinalityOfJson(
         /// and we've exceeded it, another error, make note
       } else if (elementDefinition.max != '*' &&
           maybeIndex >= int.parse(elementDefinition.max!)) {
-        returnMap = addToMap(
-            returnMap,
+        results.addResult(
             startPath,
             key,
             'The value at this path does not match the Maximum Cardinality for this field. '
@@ -60,8 +58,7 @@ Map<String, dynamic> checkMaxCardinalityOfJson(
           elementDefinition.max != '*' &&
           int.tryParse(elementDefinition.max!) != null) {
         if (fhirPaths[key].length > int.parse(elementDefinition.max!)) {
-          returnMap = addToMap(
-              returnMap,
+          results.addResult(
               startPath,
               key,
               'The value at this path has more items than is allowed. '
@@ -79,8 +76,7 @@ Map<String, dynamic> checkMaxCardinalityOfJson(
       elementDefinition.max != '*' &&
       (int.tryParse(elementDefinition.max!) ?? 0) == 1) {
     if (fhirPaths[key] is List) {
-      returnMap = addToMap(
-          returnMap,
+      results.addResult(
           startPath,
           key,
           notArrayMessage(fhirValidationObject, elementDefinition),
@@ -88,8 +84,7 @@ Map<String, dynamic> checkMaxCardinalityOfJson(
     } else {
       final maybeIndex = pathIndexIfAvailable(key);
       if (maybeIndex != null) {
-        returnMap = addToMap(
-            returnMap,
+        results.addResult(
             startPath,
             key,
             notArrayMessage(fhirValidationObject, elementDefinition),
@@ -97,5 +92,22 @@ Map<String, dynamic> checkMaxCardinalityOfJson(
       }
     }
   }
-  return returnMap;
+  return results;
+}
+
+String notArrayMessage(FhirValidationObject? fhirValidationObject,
+        ElementDefinition elementDefinition) =>
+    'This property must be a ${fhirValidationObject?.type}, not an Array. '
+    'Cardinality: ${elementDefinition.min ?? "none defined"}..${elementDefinition.max ?? "none defined"}';
+
+int? pathIndexIfAvailable(String path) {
+  /// We check this non-list to ensure that it's not actually a list
+  /// that we've broken down by indexand ensure that it ends in an index
+  final lastOpenBracket = path.lastIndexOf('[') + 1;
+  final lastClosedBracket = path.lastIndexOf(']');
+  return lastOpenBracket == 0 ||
+          lastClosedBracket == -1 ||
+          lastClosedBracket != path.length - 1
+      ? null
+      : int.tryParse(path.substring(lastOpenBracket, lastClosedBracket));
 }

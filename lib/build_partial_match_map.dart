@@ -6,7 +6,7 @@ Map<String, dynamic> buildPartialMatchMap(
   Map<String, FhirValidationObject>
       fhirPathMatches, // Map of FHIR paths to validation objects
   String startPath, // Starting path for validation
-  Map<String, dynamic> returnMap, // Map to store validation results
+  ValidationResults results, // Map to store validation results
   Map<String, dynamic>
       fhirPaths, // Map of FHIR paths to their corresponding values
 ) {
@@ -28,11 +28,11 @@ Map<String, dynamic> buildPartialMatchMap(
         partialMatch = partialMatch.substring(0, partialMatch.length - 1);
       }
       if (partialMatch == startPath) {
-        if (!returnMap.containsKey(key)) {
-          returnMap[key] = <String>[];
-        }
-        returnMap[key]!.add(
-            "Unrecognized property, '$key', not found in the StructureDefinition");
+        results.addResult(
+            startPath,
+            '$key',
+            "Unrecognized property, '$key', not found in the StructureDefinition",
+            Severity.error);
       } else {
         if (!partialMatchMap.containsKey(partialMatch)) {
           partialMatchMap[partialMatch] = <String, dynamic>{};

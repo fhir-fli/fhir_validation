@@ -1,14 +1,14 @@
 import 'package:fhir_r4/fhir_r4.dart';
 import 'fhir_validation.dart';
 
-Future<Map<String, dynamic>> evaluateFromPaths(
+Future<ValidationResults> evaluateFromPaths(
   Map<String, dynamic> fhirPaths,
   StructureDefinition structureDefinition,
   String type,
   String startPath,
   Map<String, dynamic> mapToValidate,
 ) async {
-  var returnMap = <String, dynamic>{};
+  var results = ValidationResults();
 
   // Remove resourceType as it's not in the StructureDefinition
   fhirPaths.removeWhere((key, value) => key.endsWith('.resourceType'));
@@ -20,20 +20,20 @@ Future<Map<String, dynamic>> evaluateFromPaths(
   fhirPathMatches = matchPaths(fhirPaths, elementDefinitions, fhirPathMatches);
 
   // Check the paths for compliance with the structure definition
-  returnMap = await checkPaths(
+  results = await checkPaths(
       fhirPathMatches, startPath, fhirPaths, structureDefinition);
 
   // Build a map for partially matched paths
   final partialMatchMap =
-      buildPartialMatchMap(fhirPathMatches, startPath, returnMap, fhirPaths);
+      buildPartialMatchMap(fhirPathMatches, startPath, results, fhirPaths);
 
   // Handle any partial matches found
-  returnMap = await handlePartialMatches(
-      partialMatchMap, elementDefinitions, returnMap, startPath, mapToValidate);
+  results = await handlePartialMatches(
+      partialMatchMap, elementDefinitions, results, startPath, mapToValidate);
 
   // Check for required fields and their presence
-  returnMap = checkRequiredFields(
-      structureDefinition, fhirPaths, returnMap, startPath, type);
+  results = checkRequiredFields(
+      structureDefinition, fhirPaths, results, startPath, type);
 
-  return returnMap;
+  return results;
 }

@@ -2,10 +2,10 @@ import 'package:collection/collection.dart';
 import 'package:fhir_r4/fhir_r4.dart';
 import 'fhir_validation.dart';
 
-Map<String, dynamic> checkRequiredFields(
+ValidationResults checkRequiredFields(
   StructureDefinition structureDefinition,
   Map<String, dynamic> fhirPaths,
-  Map<String, dynamic> returnMap,
+  ValidationResults results,
   String startPath,
   String type,
 ) {
@@ -46,8 +46,7 @@ Map<String, dynamic> checkRequiredFields(
             element.min!.value! > 0) {
           // Add an error to returnMap for the missing required field
           if (element.path != null) {
-            returnMap = addToMap(
-              returnMap,
+            results.addResult(
               startPath,
               element.path ?? '',
               'minimum required = ${element.min}, but only 0 found '
@@ -66,5 +65,5 @@ Map<String, dynamic> checkRequiredFields(
     }
   }
 
-  return returnMap;
+  return results;
 }

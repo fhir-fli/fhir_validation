@@ -3,11 +3,11 @@ import 'fhir_validation.dart';
 
 /// Function to handle partial matches found during FHIR validation.
 /// It attempts to resolve the partial matches by checking polymorphic types and nested profiles.
-Future<Map<String, dynamic>> handlePartialMatches(
+Future<ValidationResults> handlePartialMatches(
   Map<String, dynamic> partialMatchMap, // Map of partial matches
   List<ElementDefinition>?
       elementDefinitions, // List of element definitions from the structure definition
-  Map<String, dynamic> returnMap, // Map to store validation results
+  ValidationResults results, // Map to store validation results
   String startPath, // Starting path for validation
   Map<String, dynamic>
       mapToValidate, // Original map of the resource to validate
@@ -50,9 +50,7 @@ Future<Map<String, dynamic>> handlePartialMatches(
             newType =
                 resourceType != '' ? partialMatchMap[key][resourceType] : null;
           }
-          if (newType == null) {
-            continue;
-          } else {
+          if (newType != null) {
             final newStructureDefinition = await getStructureDefinition(
                 newType); // Get the new structure definition
             final polyMorphicLength =
@@ -69,8 +67,7 @@ Future<Map<String, dynamic>> handlePartialMatches(
                         ));
             if (newStructureDefinition != null) {
               // Handle the partial match
-              returnMap = combineMaps(
-                returnMap,
+              results.combineResults(
                 await evaluateFromPaths(
                   newMapToEvaluate,
                   StructureDefinition.fromJson(newStructureDefinition),
@@ -88,5 +85,5 @@ Future<Map<String, dynamic>> handlePartialMatches(
     }
   }
 
-  return returnMap; // Return the updated return map
+  return results; // Return the updated return map
 }

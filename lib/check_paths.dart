@@ -3,7 +3,7 @@ import 'fhir_validation.dart';
 
 /// Function to check the paths of a FHIR resource against its structure definition.
 /// It validates the type of each element and checks if it adheres to any value set bindings or constraints.
-Future<Map<String, dynamic>> checkPaths(
+Future<ValidationResults> checkPaths(
   Map<String, FhirValidationObject>
       fhirPathMatches, // Map of FHIR paths to validation objects
   String startPath, // Starting path for validation
@@ -12,7 +12,7 @@ Future<Map<String, dynamic>> checkPaths(
   StructureDefinition
       structureDefinition, // Structure definition of the resource
 ) async {
-  var returnMap = <String, dynamic>{}; // Map to store validation results
+  var results = ValidationResults(); // Map to store validation results
   final downloads =
       <String, dynamic>{}; // Cache for downloaded value sets and code systems
   final codes = <String,
@@ -27,8 +27,7 @@ Future<Map<String, dynamic>> checkPaths(
       if (value.type != null && value.type!.isNotEmpty) {
         // Validate if the value is a valid primitive type
         if (!isValueAValidPrimitive(value.type!, fhirPaths[key])) {
-          returnMap = addToMap(
-            returnMap,
+          results.addResult(
             startPath,
             key,
             "This property should be a type '${value.type}' (${fhirPrimitiveToDartPrimitive(value.type!)}) but it is invalid",
@@ -112,8 +111,7 @@ Future<Map<String, dynamic>> checkPaths(
               if (!(codes[canonical]?.contains(fhirPaths[key]) ?? false)) {
                 if (value.binding!.strength ==
                     ElementDefinitionBindingStrength.required_) {
-                  returnMap = addToMap(
-                    returnMap,
+                  results.addResult(
                     startPath,
                     key,
                     await notInValueSetMessage(
@@ -125,8 +123,7 @@ Future<Map<String, dynamic>> checkPaths(
                   );
                 } else if (value.binding!.strength ==
                     ElementDefinitionBindingStrength.extensible) {
-                  returnMap = addToMap(
-                    returnMap,
+                  results.addResult(
                     startPath,
                     key,
                     await notInValueSetMessage(
@@ -138,8 +135,7 @@ Future<Map<String, dynamic>> checkPaths(
                   );
                 } else if (value.binding!.strength ==
                     ElementDefinitionBindingStrength.preferred) {
-                  returnMap = addToMap(
-                    returnMap,
+                  results.addResult(
                     startPath,
                     key,
                     await notInValueSetMessage(
@@ -162,8 +158,7 @@ Future<Map<String, dynamic>> checkPaths(
     for (final constraint in constraints ?? <ElementDefinitionConstraint>[]) {
       if (!await evaluateConstraint(
           constraint.expression!, fhirPaths[key], startPath)) {
-        returnMap = addToMap(
-          returnMap,
+        results.addResult(
           startPath,
           key,
           "Constraint violated: ${constraint.human}",
@@ -173,7 +168,7 @@ Future<Map<String, dynamic>> checkPaths(
     }
   }
 
-  return returnMap;
+  return results;
 }
 
 /// Utility function to evaluate FHIRPath expressions

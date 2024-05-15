@@ -2,20 +2,24 @@ import 'package:fhir_r4/fhir_r4.dart';
 import 'package:fhir_validation/fhir_validation.dart';
 
 // Main validation function
-Future<Map<String, dynamic>> validateFhir({
+Future<ValidationResults> validateFhir({
   required Map<String, dynamic> resourceToValidate,
   StructureDefinition? structureDefinition,
 }) async {
   // Initialize a return map to store validation results
-  var returnMap = <String, dynamic>{};
+  var results = ValidationResults();
 
   // Extract the resourceType from the resource
   final type = resourceToValidate['resourceType'];
   if (type == null) {
     // If the resourceType is not found, return an error
-    return {
-      'resource': ['No resourceType was found']
-    };
+    return results
+      ..addResult(
+        '',
+        '',
+        'ResourceType is missing',
+        Severity.error,
+      );
   }
 
   // Extract profiles from the resource if any are specified in the meta section
@@ -32,9 +36,13 @@ Future<Map<String, dynamic>> validateFhir({
       }
     } catch (e) {
       // If there is an error retrieving a profile, return an error message
-      return {
-        'resource': ['Failed to retrieve profile definition: $profile']
-      };
+      return results
+        ..addResult(
+          '',
+          '',
+          'Failed to retrieve profile definition: $profile',
+          Severity.error,
+        );
     }
   }
 
@@ -45,9 +53,12 @@ Future<Map<String, dynamic>> validateFhir({
       final definitionMap = await getStructureDefinition(type);
       if (definitionMap == null) {
         // If no structure definition is found, return an error
-        returnMap[type] = [
-          'No StructureDefinition was found for this Resource, which is a resourceType of: $type'
-        ];
+        results.addResult(
+          '',
+          '',
+          'No StructureDefinition was found for this Resource, which is a resourceType of: $type',
+          Severity.error,
+        );
       } else {
         // Parse the structure definition from JSON
         structureDefinition = StructureDefinition.fromJson(definitionMap);
@@ -55,18 +66,16 @@ Future<Map<String, dynamic>> validateFhir({
     }
     if (structureDefinition == null) {
       // If structure definition is still null, add an error message to returnMap
-      if (returnMap[type] == null || returnMap[type]!.isEmpty) {
-        returnMap[type] = [
-          'No StructureDefinition was found for this Resource, which is a resourceType of: $type'
-        ];
-      } else {
-        returnMap[type]!.add(
-            'No StructureDefinition was found for this Resource, which is a resourceType of: $type');
-      }
+      return results
+        ..addResult(
+          '',
+          '',
+          'No StructureDefinition was found for this Resource, which is a resourceType of: $type',
+          Severity.error,
+        );
     } else {
       // If structure definition is found, validate the resource against it
-      returnMap = combineMaps(
-        returnMap,
+      results.combineResults(
         await validateFhirMaps(
           mapToValidate: resourceToValidate,
           structureDefinition: structureDefinition,
@@ -78,8 +87,7 @@ Future<Map<String, dynamic>> validateFhir({
   } else {
     // If profiles are found, validate the resource against each profile
     for (var profileDef in profileDefinitions) {
-      returnMap = combineMaps(
-        returnMap,
+      results.combineResults(
         await validateFhirMaps(
           mapToValidate: resourceToValidate,
           structureDefinition: StructureDefinition.fromJson(profileDef),
@@ -91,5 +99,29 @@ Future<Map<String, dynamic>> validateFhir({
   }
 
   // Return the final map with validation results
-  return returnMap;
+  return results;
+}
+
+// Helper function to extract profiles from the resource
+List<String> extractProfiles(Map<String, dynamic> resource) {
+  List<String> profiles = [];
+  if (resource.containsKey('meta') && resource['meta'].containsKey('profile')) {
+    profiles = List<String>.from(resource['meta']['profile']);
+  }
+  return profiles;
+}
+
+Future<ValidationResults> validateFhirMaps({
+  required Map<String, dynamic> mapToValidate,
+  required StructureDefinition structureDefinition,
+  required String type,
+  required String startPath,
+}) async {
+  // Create a list of all paths in the mapToValidate
+  final fhirPaths = fhirPathsFromMap(value: mapToValidate, path: type);
+  // Evaluate the resource based on the generated paths and structure definition
+  final results = await evaluateFromPaths(
+      fhirPaths, structureDefinition, type, startPath, mapToValidate);
+
+  return results;
 }
