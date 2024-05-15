@@ -12,7 +12,7 @@ Future<ValidationResults> checkPaths(
   StructureDefinition
       structureDefinition, // Structure definition of the resource
 ) async {
-  var results = ValidationResults(); // Map to store validation results
+  var results = ValidationResults(); // Object to store validation results
   final downloads =
       <String, dynamic>{}; // Cache for downloaded value sets and code systems
   final codes = <String,
@@ -26,13 +26,15 @@ Future<ValidationResults> checkPaths(
     if (value.fullMatch != null && value.fullMatch != '') {
       if (value.type != null && value.type!.isNotEmpty) {
         // Validate if the value is a valid primitive type
-        if (!isValueAValidPrimitive(value.type!, fhirPaths[key])) {
-          results.addResult(
-            startPath,
-            key,
-            "This property should be a type '${value.type}' (${fhirPrimitiveToDartPrimitive(value.type!)}) but it is invalid",
-            Severity.error,
-          );
+        if (isPrimitiveType(value.type!)) {
+          if (!isValueAValidPrimitive(value.type!, fhirPaths[key])) {
+            results.addResult(
+              startPath,
+              key,
+              "This property should be a type '${value.type}' (${fhirPrimitiveToDartPrimitive(value.type!)}) but it is invalid",
+              Severity.error,
+            );
+          }
         }
 
         // Check if there is a ValueSet binding for this element
@@ -108,7 +110,30 @@ Future<ValidationResults> checkPaths(
 
             // Validate if the code is in the value set
             if (codes[canonical] != null && codes[canonical]!.isNotEmpty) {
-              if (!(codes[canonical]?.contains(fhirPaths[key]) ?? false)) {
+              bool codeIsInValueSet = false;
+
+              // Check if the value is a Code, Coding, or CodeableConcept
+              var valueToCheck = fhirPaths[key];
+              if (valueToCheck is Map) {
+                if (valueToCheck.containsKey('coding')) {
+                  // Handle CodeableConcept
+                  for (var coding in valueToCheck['coding']) {
+                    if (codes[canonical]!.contains(coding['code'])) {
+                      codeIsInValueSet = true;
+                      break;
+                    }
+                  }
+                } else if (valueToCheck.containsKey('code')) {
+                  // Handle Coding
+                  codeIsInValueSet =
+                      codes[canonical]!.contains(valueToCheck['code']);
+                }
+              } else if (codes[canonical]!.contains(valueToCheck)) {
+                // Handle primitive code
+                codeIsInValueSet = true;
+              }
+
+              if (!codeIsInValueSet) {
                 if (value.binding!.strength ==
                     ElementDefinitionBindingStrength.required_) {
                   results.addResult(
@@ -169,6 +194,12 @@ Future<ValidationResults> checkPaths(
   }
 
   return results;
+}
+
+/// Utility function to check if a type is a primitive type
+bool isPrimitiveType(String type) {
+  // Add logic to determine if the type is a primitive type based on your requirements
+  return canonicalToPrimitiveType.containsValue(type);
 }
 
 /// Utility function to evaluate FHIRPath expressions
