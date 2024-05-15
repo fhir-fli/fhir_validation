@@ -13,29 +13,27 @@ Future<Map<String, dynamic>> evaluateFromPaths(
   // Remove resourceType as it's not in the StructureDefinition
   fhirPaths.removeWhere((key, value) => key.endsWith('.resourceType'));
 
-  // print('After removing resourceType: $fhirPaths');
-
   var fhirPathMatches = <String, FhirValidationObject>{};
   final elementDefinitions = structureDefinition.snapshot?.element;
 
+  // Match FHIR paths to the element definitions in the structure definition
   fhirPathMatches = matchPaths(fhirPaths, elementDefinitions, fhirPathMatches);
-  // print('After matchPaths: $fhirPathMatches');
 
+  // Check the paths for compliance with the structure definition
   returnMap = await checkPaths(
       fhirPathMatches, startPath, fhirPaths, structureDefinition);
-  // print('After checkPaths: $returnMap');
 
+  // Build a map for partially matched paths
   final partialMatchMap =
       buildPartialMatchMap(fhirPathMatches, startPath, returnMap, fhirPaths);
-  // print('After buildPartialMatchMap: $partialMatchMap');
 
+  // Handle any partial matches found
   returnMap = await handlePartialMatches(
       partialMatchMap, elementDefinitions, returnMap, startPath, mapToValidate);
-  // print('After handlePartialMatches: $returnMap');
 
+  // Check for required fields and their presence
   returnMap = checkRequiredFields(
       structureDefinition, fhirPaths, returnMap, startPath, type);
-  // print('After checkRequiredFields: $returnMap');
 
   return returnMap;
 }

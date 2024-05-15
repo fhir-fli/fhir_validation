@@ -1,10 +1,15 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'package:http/http.dart';
 
+import 'resource_cache.dart';
 import 'code_system_maps/code_system_maps.dart';
 import 'naming_system_maps/naming_system_maps.dart';
 import 'structure_definition_maps/structure_definition_maps.dart';
 import 'value_set_maps/value_set_maps.dart';
+
+// Singleton cache instance
+final ResourceCache resourceCache = ResourceCache();
 
 /// Retrieves a ValueSet from the given URL. Checks online first and if not
 /// found, then checks locally.
@@ -43,16 +48,25 @@ Future<Map<String, dynamic>?> _getResource(
   String resourceType,
   Map<String, Map<String, dynamic>> localMap,
 ) async {
-  final result = localMap[url];
+  // Normalize URL
+  final normalizedUrl = url.contains('|') ? url.split('|')[0] : url;
+
+  // Check cache first
+  final cachedResource = resourceCache.get(normalizedUrl);
+  if (cachedResource != null) {
+    return cachedResource;
+  }
+
+  final result = localMap[normalizedUrl];
   if (result != null) {
+    resourceCache.set(normalizedUrl, result);
     return result;
   } else {
-    final Map<String, dynamic>? result = await _requestFromCanonical(url);
+    final Map<String, dynamic>? result =
+        await _requestFromCanonical(normalizedUrl);
     if (result != null && result['resourceType'] == resourceType) {
+      resourceCache.set(normalizedUrl, result);
       return result;
-    } else if (url.contains('|')) {
-      final newUrl = url.split('|')[0];
-      return _getResource(newUrl, resourceType, localMap);
     }
   }
   return null;
@@ -67,9 +81,12 @@ Future<Map<String, dynamic>?> _requestFromCanonical(String canonical,
         get(Uri.parse(canonical),
             headers: {'Accept': 'application/fhir+json'}));
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      final result = jsonDecode(response.body);
+      resourceCache.set(canonical, result);
+      return result;
     }
   } catch (e) {
+    log('Error requesting from canonical: $canonical, error: $e');
     // Handle exception or logging.
   }
   return null;

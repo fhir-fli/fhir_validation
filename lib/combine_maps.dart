@@ -1,3 +1,4 @@
+// Helper function to combine two maps, merging their values
 Map<String, dynamic> combineMaps(
     Map<String, dynamic> map1, Map<String, dynamic> map2) {
   for (var key in map2.keys) {

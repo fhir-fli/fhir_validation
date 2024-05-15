@@ -1,33 +1,41 @@
 import 'package:fhir_r4/fhir_r4.dart';
-
 import 'fhir_validation.dart';
 
+/// Function to handle partial matches found during FHIR validation.
+/// It attempts to resolve the partial matches by checking polymorphic types and nested profiles.
 Future<Map<String, dynamic>> handlePartialMatches(
-  Map<String, dynamic> partialMatchMap,
-  List<ElementDefinition>? elementDefinitions,
-  Map<String, dynamic> returnMap,
-  String startPath,
-  Map<String, dynamic> mapToValidate,
+  Map<String, dynamic> partialMatchMap, // Map of partial matches
+  List<ElementDefinition>?
+      elementDefinitions, // List of element definitions from the structure definition
+  Map<String, dynamic> returnMap, // Map to store validation results
+  String startPath, // Starting path for validation
+  Map<String, dynamic>
+      mapToValidate, // Original map of the resource to validate
 ) async {
+  // Iterate through each partial match
   for (var key in partialMatchMap.keys) {
-    final noIndexesPath = key.replaceAll(RegExp(r'\[[0-9]+\]'), '');
-    final elementDefinitionIndex = elementDefinitions
-        ?.indexWhere((element) => element.path == noIndexesPath);
+    final noIndexesPath = key.replaceAll(
+        RegExp(r'\[[0-9]+\]'), ''); // Remove indexes from the path
+    final elementDefinitionIndex = elementDefinitions?.indexWhere((element) =>
+        element.path == noIndexesPath); // Find the element definition index
 
     if (elementDefinitionIndex != null && elementDefinitionIndex != -1) {
-      final types = elementDefinitions?[elementDefinitionIndex].type;
+      final types = elementDefinitions?[elementDefinitionIndex]
+          .type; // Get the types of the element
 
       if (types != null && types.isNotEmpty) {
         String? newType;
         if (types.length == 1) {
-          newType = types.first.code?.toString();
+          newType = types.first.code
+              ?.toString(); // Get the type code if there is only one type
         } else {
           final keyList = key.split('.');
           if (keyList.last.endsWith('[x]')) {
             final polymorphicField =
                 partialMatchMap[key].keys.first.split('.')[keyList.length - 1];
             final fieldName = keyList.last.replaceAll('[x]', '');
-            newType = polymorphicField.replaceFirst(fieldName, '');
+            newType = polymorphicField.replaceFirst(
+                fieldName, ''); // Handle polymorphic fields
           }
         }
 
@@ -45,8 +53,8 @@ Future<Map<String, dynamic>> handlePartialMatches(
           if (newType == null) {
             continue;
           } else {
-            final newStructureDefinition =
-                await getStructureDefinition(newType);
+            final newStructureDefinition = await getStructureDefinition(
+                newType); // Get the new structure definition
             final polyMorphicLength =
                 key.endsWith('[x]') ? key.split('.').length : -1;
             final startOfPath =
@@ -60,7 +68,7 @@ Future<Map<String, dynamic>> handlePartialMatches(
                           v,
                         ));
             if (newStructureDefinition != null) {
-              // print('Handling partial match: $key -> $newType');
+              // Handle the partial match
               returnMap = combineMaps(
                 returnMap,
                 await evaluateFromPaths(
@@ -76,9 +84,9 @@ Future<Map<String, dynamic>> handlePartialMatches(
         }
       }
     } else {
-      // print('Key not found in elementDefinitions: $key');
+      // Key not found in element definitions
     }
   }
 
-  return returnMap;
+  return returnMap; // Return the updated return map
 }

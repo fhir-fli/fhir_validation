@@ -1,7 +1,6 @@
 export 'systems/system_loader.dart';
 export 'result_map.dart';
 export 'build_partial_match_map.dart';
-export 'canonical_to_primitive_type.dart';
 export 'check_max_cardinality_of_json.dart';
 export 'check_paths.dart';
 export 'check_required_fields.dart';
