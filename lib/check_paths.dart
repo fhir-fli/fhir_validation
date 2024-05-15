@@ -13,11 +13,11 @@ Future<Map<String, dynamic>> checkPaths(
 
   for (final key in fhirPathMatches.keys) {
     final FhirValidationObject value = fhirPathMatches[key]!;
-    print('Checking path: $key -> ${value.fullMatch}');
+    // print('Checking path: $key -> ${value.fullMatch}');
 
     if (value.fullMatch != null && value.fullMatch != '') {
       if (value.type != null && value.type!.isNotEmpty) {
-        print('Validating type for: $key');
+        // print('Validating type for: $key');
         if (!isValueAValidPrimitive(value.type!, fhirPaths[key])) {
           returnMap = addToMap(
               returnMap,

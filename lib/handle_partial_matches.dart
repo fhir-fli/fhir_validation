@@ -60,7 +60,7 @@ Future<Map<String, dynamic>> handlePartialMatches(
                           v,
                         ));
             if (newStructureDefinition != null) {
-              print('Handling partial match: $key -> $newType');
+              // print('Handling partial match: $key -> $newType');
               returnMap = combineMaps(
                 returnMap,
                 await evaluateFromPaths(
@@ -76,7 +76,7 @@ Future<Map<String, dynamic>> handlePartialMatches(
         }
       }
     } else {
-      print('Key not found in elementDefinitions: $key');
+      // print('Key not found in elementDefinitions: $key');
     }
   }
 

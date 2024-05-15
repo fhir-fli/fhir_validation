@@ -13,7 +13,7 @@ Future<void> main() async {
             Resource.fromJsonString(await File(path).readAsString());
         final result =
             await validateFhir(resourceToValidate: resource.toJson());
-        print(jsonPrettyPrint(result));
+        print(jsonPrettyPrint(organizeValidationOutput(result)));
       }
     }
   }

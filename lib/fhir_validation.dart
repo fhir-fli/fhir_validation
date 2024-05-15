@@ -1,5 +1,5 @@
 export 'systems/system_loader.dart';
-export 'add_to_map.dart';
+export 'result_map.dart';
 export 'build_partial_match_map.dart';
 export 'canonical_to_primitive_type.dart';
 export 'check_max_cardinality_of_json.dart';
@@ -21,4 +21,3 @@ export 'path_index_if_available.dart';
 export 'pretty_print.dart';
 export 'validate_fhir_maps.dart';
 export 'validate_fhir.dart';
-export 'validation_result.dart';
