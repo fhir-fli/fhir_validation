@@ -7,7 +7,7 @@ class ValidationResults {
   void addResult(
       String startPath, String currentPath, String newItem, Severity severity,
       {int? line, int? column}) {
-    final String path = fullPathFromStartAndCurrent(startPath, currentPath);
+    final String path = _fullPathFromStartAndCurrent(startPath, currentPath);
     results.add(ValidationDiagnostics(path, newItem, severity,
         line: line, column: column));
   }
@@ -16,7 +16,7 @@ class ValidationResults {
     results.addAll(other.results);
   }
 
-  String fullPathFromStartAndCurrent(String startPath, String currentPath) {
+  String _fullPathFromStartAndCurrent(String startPath, String currentPath) {
     var pathList = currentPath.split('.');
     pathList.removeAt(0);
     pathList = [startPath, ...pathList];
@@ -49,7 +49,7 @@ class ValidationResults {
     return toJson().toString();
   }
 
-  OperationOutcomeIssue makeOperationOutcomeIssue(ValidationDiagnostics e) =>
+  OperationOutcomeIssue _makeOperationOutcomeIssue(ValidationDiagnostics e) =>
       OperationOutcomeIssue(
           severity: FhirCode(e.severity.toString()),
           code: FhirCode('processing'),
@@ -90,16 +90,22 @@ class ValidationResults {
         .where((element) => element.severity == Severity.information)
         .toList();
     final issues = <OperationOutcomeIssue>[];
-    issues.addAll(error.map((e) => makeOperationOutcomeIssue(e)).toList());
-    issues.addAll(warning.map((e) => makeOperationOutcomeIssue(e)).toList());
+    issues.addAll(error.map((e) => _makeOperationOutcomeIssue(e)).toList());
+    issues.addAll(warning.map((e) => _makeOperationOutcomeIssue(e)).toList());
     issues
-        .addAll(information.map((e) => makeOperationOutcomeIssue(e)).toList());
+        .addAll(information.map((e) => _makeOperationOutcomeIssue(e)).toList());
     final outcome = OperationOutcome(issue: issues);
     return outcome;
   }
 
   String prettyPrint() {
     return jsonPrettyPrint(toOperationOutcome().toJson());
+  }
+
+  ValidationResults copyWith({
+    List<ValidationDiagnostics>? results,
+  }) {
+    return ValidationResults()..results.addAll(results ?? this.results);
   }
 }
 
@@ -110,8 +116,13 @@ class ValidationDiagnostics {
   final int? line;
   final int? column;
 
-  ValidationDiagnostics(this.path, this.diagnostics, this.severity,
-      {this.line, this.column});
+  ValidationDiagnostics(
+    this.path,
+    this.diagnostics,
+    this.severity, {
+    this.line,
+    this.column,
+  });
 
   Map<String, dynamic> toJson() {
     return {

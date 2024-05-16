@@ -5,12 +5,12 @@ import 'package:fhir_validation/fhir_validation.dart';
 import 'fhir_validation_utils.dart';
 
 class FhirValidator {
+  var results = ValidationResults();
+
   Future<ValidationResults> validateFhir({
     required Map<String, dynamic> resourceToValidate,
     StructureDefinition? structureDefinition,
   }) async {
-    var results = ValidationResults();
-
     final String resourceString = json.encode(resourceToValidate);
     // Parse the JSON with position information
     final jsonAst = parse(resourceString, Settings());

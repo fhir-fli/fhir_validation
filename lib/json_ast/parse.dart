@@ -20,7 +20,49 @@ class Node {
   final String type;
   Location? loc;
 
-  Node(this.type);
+  Node(this.type, {this.loc});
+
+  Node? getPropertyNode(String propertyName) {
+    if (this is ObjectNode) {
+      for (var property in (this as ObjectNode).children) {
+        if (property.key?.value == propertyName) {
+          return property.value;
+        }
+      }
+    }
+    return null;
+  }
+
+  List<LiteralNode> extractProfileNodes() {
+    List<LiteralNode> profileNodes = [];
+
+    void traverse(Node node, String path) {
+      if (node is ObjectNode) {
+        for (var property in node.children) {
+          final newPath = path.isEmpty
+              ? property.key?.value
+              : '$path.${property.key?.value}';
+          if (newPath == 'meta.profile' && property.value is ArrayNode) {
+            for (var item in (property.value as ArrayNode).children) {
+              if (item is LiteralNode) {
+                profileNodes.add(item);
+              }
+            }
+          } else if (newPath != null) {
+            traverse(property.value!, newPath);
+          }
+        }
+      } else if (node is ArrayNode) {
+        for (var i = 0; i < node.children.length; i++) {
+          final newPath = '$path[$i]';
+          traverse(node.children[i], newPath);
+        }
+      }
+    }
+
+    traverse(this, '');
+    return profileNodes;
+  }
 }
 
 class ValueNode extends Node {

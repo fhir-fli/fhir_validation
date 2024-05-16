@@ -1,5 +1,3 @@
-import 'json_ast.dart';
-
 enum TokenType {
   LEFT_BRACE, // {
   RIGHT_BRACE, // }
@@ -29,10 +27,10 @@ final Map<String, TokenType> keywordTokensMap = {
   'null': TokenType.NULL
 };
 
-enum _StringState { _START_, START_QUOTE_OR_CHAR, ESCAPE }
+enum StringState { _START_, START_QUOTE_OR_CHAR, ESCAPE }
 
 final Map<String, int> escapes = {
-  '"': 0, // Quotation mask
+  '"': 0, // Quotation mark
   '\\': 1, // Reverse solidus
   '/': 2, // Solidus
   'b': 3, // Backspace
@@ -43,7 +41,7 @@ final Map<String, int> escapes = {
   'u': 8 // 4 hexadecimal digits
 };
 
-enum _NumberState {
+enum NumberState {
   _START_,
   MINUS,
   ZERO,
@@ -54,42 +52,32 @@ enum _NumberState {
   EXP_DIGIT_OR_SIGN
 }
 
-class Token {
-  final TokenType? type;
-  final int line;
-  final int column;
-  final int index;
-  final String? value;
-  Location? loc;
+bool isDigit1to9(String char) =>
+    char.compareTo('1') >= 0 && char.compareTo('9') <= 0;
 
-  Token(this.type, this.line, this.column, this.index, this.value);
-}
+bool isDigit(String char) =>
+    char.compareTo('0') >= 0 && char.compareTo('9') <= 0;
 
-typedef Token? _tokenParser(String input, int index, int line, int column);
+bool isHex(String char) =>
+    isDigit(char) ||
+    (char.compareTo('a') >= 0 && char.compareTo('f') <= 0) ||
+    (char.compareTo('A') >= 0 && char.compareTo('F') <= 0);
 
-List<_tokenParser> _parsers = [
-  parseChar,
-  parseKeyword,
-  parseString,
-  parseNumber
-];
-
-Token? _parseToken(String input, int index, int line, int column) {
-  for (int i = 0; i < _parsers.length; i++) {
-    final token = _parsers[i](input, index, line, column);
-    if (token != null) {
-      return token;
-    }
-  }
-  return null;
-}
+bool isExp(String char) => char == 'e' || char == 'E';
 
 class Position {
-  final int index;
-  final int line;
-  final int column;
+  int index;
+  int line;
+  int column;
 
   Position(this.index, this.line, this.column);
+}
+
+class Token {
+  TokenType type;
+  String? value;
+  Position position;
+  Token(this.type, this.value, this.position);
 }
 
 Position? parseWhitespace(String input, int index, int line, int column) {
@@ -100,7 +88,7 @@ Position? parseWhitespace(String input, int index, int line, int column) {
     index++;
     line++;
     column = 1;
-    if (input.length > index && input[index] == '\n') {
+    if (index < input.length && input[index] == '\n') {
       // CRLF (Windows)
       index++;
     }
@@ -121,23 +109,26 @@ Position? parseWhitespace(String input, int index, int line, int column) {
 
 Token? parseChar(String input, int index, int line, int column) {
   final char = input[index];
+
   if (punctuatorTokensMap.containsKey(char)) {
-    final tokenType = punctuatorTokensMap[char];
-    return Token(tokenType, line, column + 1, index + 1, null);
+    return Token(
+      punctuatorTokensMap[char]!,
+      null,
+      Position(index + 1, line, column + 1),
+    );
   }
 
   return null;
 }
 
 Token? parseKeyword(String input, int index, int line, int column) {
-  final entries = keywordTokensMap.entries;
-  for (int i = 0; i < entries.length; i++) {
-    final entry = entries.elementAt(i);
-    final keyLen = entry.key.length;
-    final nextLen = index + keyLen;
-    final lastIndex = nextLen > input.length ? input.length : nextLen;
-    if (safeSubstring(input, index, lastIndex) == entry.key) {
-      return Token(entry.value, line, column + keyLen, lastIndex, entry.key);
+  for (var entry in keywordTokensMap.entries) {
+    if (input.substring(index, index + entry.key.length) == entry.key) {
+      return Token(
+        entry.value,
+        entry.key,
+        Position(index + entry.key.length, line, column + entry.key.length),
+      );
     }
   }
 
@@ -146,209 +137,208 @@ Token? parseKeyword(String input, int index, int line, int column) {
 
 Token? parseString(String input, int index, int line, int column) {
   final startIndex = index;
-  _StringState state = _StringState._START_;
-  final stringBuffer = StringBuffer();
+  var buffer = '';
+  var state = StringState._START_;
 
   while (index < input.length) {
     final char = input[index];
 
     switch (state) {
-      case _StringState._START_:
-        {
-          if (char == '"') {
-            index++;
-            state = _StringState.START_QUOTE_OR_CHAR;
-          } else {
-            return null;
-          }
-          break;
+      case StringState._START_:
+        if (char == '"') {
+          index++;
+          state = StringState.START_QUOTE_OR_CHAR;
+        } else {
+          return null;
         }
+        break;
 
-      case _StringState.START_QUOTE_OR_CHAR:
-        {
-          if (char == '\\') {
-            index++;
-            state = _StringState.ESCAPE;
-          } else if (char == '"') {
-            index++;
-            return Token(
-              TokenType.STRING,
-              line,
-              column + (index - startIndex),
-              index,
-              stringBuffer.toString(),
-            );
-          } else {
-            stringBuffer.write(char);
-            index++;
-          }
-          break;
+      case StringState.START_QUOTE_OR_CHAR:
+        if (char == '\\') {
+          buffer += char;
+          index++;
+          state = StringState.ESCAPE;
+        } else if (char == '"') {
+          index++;
+          return Token(
+            TokenType.STRING,
+            input.substring(startIndex, index),
+            Position(index, line, column + (index - startIndex)),
+          );
+        } else {
+          buffer += char;
+          index++;
         }
+        break;
 
-      case _StringState.ESCAPE:
-        {
-          if (escapes.containsKey(char)) {
-            index++;
-            if (char == 'u') {
-              for (int i = 0; i < 4; i++) {
-                final curChar = input[index];
-                if (curChar != '' && isHex(curChar)) {
-                  stringBuffer.write(curChar);
-                  index++;
-                } else {
-                  return null;
-                }
+      case StringState.ESCAPE:
+        if (escapes.containsKey(char)) {
+          buffer += char;
+          index++;
+          if (char == 'u') {
+            for (var i = 0; i < 4; i++) {
+              final curChar = input[index];
+              if (curChar.isNotEmpty && isHex(curChar)) {
+                buffer += curChar;
+                index++;
+              } else {
+                return null;
               }
-            } else {
-              stringBuffer.write(char);
             }
-            state = _StringState.START_QUOTE_OR_CHAR;
-          } else {
-            return null;
           }
-          break;
+          state = StringState.START_QUOTE_OR_CHAR;
+        } else {
+          return null;
         }
+        break;
     }
   }
+
   return null;
 }
 
 Token? parseNumber(String input, int index, int line, int column) {
   final startIndex = index;
-  int passedValueIndex = index;
-  _NumberState state = _NumberState._START_;
+  var passedValueIndex = index;
+  var state = NumberState._START_;
 
-  iterator:
   while (index < input.length) {
     final char = input[index];
 
     switch (state) {
-      case _NumberState._START_:
-        {
-          if (char == '-') {
-            state = _NumberState.MINUS;
-          } else if (char == '0') {
-            passedValueIndex = index + 1;
-            state = _NumberState.ZERO;
-          } else if (isDigit1to9(char)) {
-            passedValueIndex = index + 1;
-            state = _NumberState.DIGIT;
-          } else {
-            return null;
-          }
-          break;
+      case NumberState._START_:
+        if (char == '-') {
+          state = NumberState.MINUS;
+        } else if (char == '0') {
+          passedValueIndex = index + 1;
+          state = NumberState.ZERO;
+        } else if (isDigit1to9(char)) {
+          passedValueIndex = index + 1;
+          state = NumberState.DIGIT;
+        } else {
+          return null;
         }
+        break;
 
-      case _NumberState.MINUS:
-        {
-          if (char == '0') {
-            passedValueIndex = index + 1;
-            state = _NumberState.ZERO;
-          } else if (isDigit1to9(char)) {
-            passedValueIndex = index + 1;
-            state = _NumberState.DIGIT;
-          } else {
-            return null;
-          }
-          break;
+      case NumberState.MINUS:
+        if (char == '0') {
+          passedValueIndex = index + 1;
+          state = NumberState.ZERO;
+        } else if (isDigit1to9(char)) {
+          passedValueIndex = index + 1;
+          state = NumberState.DIGIT;
+        } else {
+          return null;
         }
+        break;
 
-      case _NumberState.ZERO:
-        {
-          if (char == '.') {
-            state = _NumberState.POINT;
-          } else if (isExp(char)) {
-            state = _NumberState.EXP;
-          } else {
-            break iterator;
-          }
-          break;
+      case NumberState.ZERO:
+        if (char == '.') {
+          state = NumberState.POINT;
+        } else if (isExp(char)) {
+          state = NumberState.EXP;
+        } else {
+          return Token(
+            TokenType.NUMBER,
+            input.substring(startIndex, passedValueIndex),
+            Position(passedValueIndex, line,
+                column + (passedValueIndex - startIndex)),
+          );
         }
+        break;
 
-      case _NumberState.DIGIT:
-        {
-          if (isDigit(char)) {
-            passedValueIndex = index + 1;
-          } else if (char == '.') {
-            state = _NumberState.POINT;
-          } else if (isExp(char)) {
-            state = _NumberState.EXP;
-          } else {
-            break iterator;
-          }
-          break;
+      case NumberState.DIGIT:
+        if (isDigit(char)) {
+          passedValueIndex = index + 1;
+        } else if (char == '.') {
+          state = NumberState.POINT;
+        } else if (isExp(char)) {
+          state = NumberState.EXP;
+        } else {
+          return Token(
+            TokenType.NUMBER,
+            input.substring(startIndex, passedValueIndex),
+            Position(passedValueIndex, line,
+                column + (passedValueIndex - startIndex)),
+          );
         }
+        break;
 
-      case _NumberState.POINT:
-        {
-          if (isDigit(char)) {
-            passedValueIndex = index + 1;
-            state = _NumberState.DIGIT_FRACTION;
-          } else {
-            break iterator;
-          }
-          break;
+      case NumberState.POINT:
+        if (isDigit(char)) {
+          passedValueIndex = index + 1;
+          state = NumberState.DIGIT_FRACTION;
+        } else {
+          return Token(
+            TokenType.NUMBER,
+            input.substring(startIndex, passedValueIndex),
+            Position(passedValueIndex, line,
+                column + (passedValueIndex - startIndex)),
+          );
         }
+        break;
 
-      case _NumberState.DIGIT_FRACTION:
-        {
-          if (isDigit(char)) {
-            passedValueIndex = index + 1;
-          } else if (isExp(char)) {
-            state = _NumberState.EXP;
-          } else {
-            break iterator;
-          }
-          break;
+      case NumberState.DIGIT_FRACTION:
+        if (isDigit(char)) {
+          passedValueIndex = index + 1;
+        } else if (isExp(char)) {
+          state = NumberState.EXP;
+        } else {
+          return Token(
+            TokenType.NUMBER,
+            input.substring(startIndex, passedValueIndex),
+            Position(passedValueIndex, line,
+                column + (passedValueIndex - startIndex)),
+          );
         }
+        break;
 
-      case _NumberState.EXP:
-        {
-          if (char == '+' || char == '-') {
-            state = _NumberState.EXP_DIGIT_OR_SIGN;
-          } else if (isDigit(char)) {
-            passedValueIndex = index + 1;
-            state = _NumberState.EXP_DIGIT_OR_SIGN;
-          } else {
-            break iterator;
-          }
-          break;
+      case NumberState.EXP:
+        if (char == '+' || char == '-') {
+          state = NumberState.EXP_DIGIT_OR_SIGN;
+        } else if (isDigit(char)) {
+          passedValueIndex = index + 1;
+          state = NumberState.EXP_DIGIT_OR_SIGN;
+        } else {
+          return Token(
+            TokenType.NUMBER,
+            input.substring(startIndex, passedValueIndex),
+            Position(passedValueIndex, line,
+                column + (passedValueIndex - startIndex)),
+          );
         }
+        break;
 
-      case _NumberState.EXP_DIGIT_OR_SIGN:
-        {
-          if (isDigit(char)) {
-            passedValueIndex = index + 1;
-          } else {
-            break iterator;
-          }
-          break;
+      case NumberState.EXP_DIGIT_OR_SIGN:
+        if (isDigit(char)) {
+          passedValueIndex = index + 1;
+        } else {
+          return Token(
+            TokenType.NUMBER,
+            input.substring(startIndex, passedValueIndex),
+            Position(passedValueIndex, line,
+                column + (passedValueIndex - startIndex)),
+          );
         }
+        break;
     }
 
     index++;
   }
 
-  if (passedValueIndex > 0) {
-    return Token(
-        TokenType.NUMBER,
-        line,
-        column + (passedValueIndex - startIndex),
-        passedValueIndex,
-        safeSubstring(input, startIndex, passedValueIndex));
-  }
-
   return null;
 }
 
-List<Token> tokenize(String input, Settings settings) {
-  int line = 1;
-  int column = 1;
-  int index = 0;
-  List<Token> tokens = <Token>[];
+List<Token> tokenize(String input, {String? source}) {
+  var line = 1;
+  var column = 1;
+  var index = 0;
+  final tokens = <Token>[];
 
   while (index < input.length) {
+    final args = [input, index, line, column];
     final whitespace = parseWhitespace(input, index, line, column);
+
     if (whitespace != null) {
       index = whitespace.index;
       line = whitespace.line;
@@ -356,22 +346,27 @@ List<Token> tokenize(String input, Settings settings) {
       continue;
     }
 
-    final token = _parseToken(input, index, line, column);
+    final matched = parseChar(input, index, line, column) ??
+        parseKeyword(input, index, line, column) ??
+        parseString(input, index, line, column) ??
+        parseNumber(input, index, line, column);
 
-    if (token != null) {
-      final src = settings.source ?? "";
-      token.loc = Location.create(
-          line, column, index, token.line, token.column, token.index, src);
+    if (matched != null) {
+      final token = Token(
+        matched.type,
+        matched.value,
+        Position(matched.position.index, matched.position.line,
+            matched.position.column),
+      );
+
       tokens.add(token);
-      index = token.index;
-      line = token.line;
-      column = token.column;
+      index = matched.position.index;
+      line = matched.position.line;
+      column = matched.position.column;
     } else {
-      final src = settings.source ?? "";
-      final msg = unexpectedSymbol(
-          substring(input, index, index + 1), src, line, column);
-      throw JSONASTException(msg, input, src, line, column);
+      throw Exception('Unexpected symbol at $line:$column');
     }
   }
+
   return tokens;
 }

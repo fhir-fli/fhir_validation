@@ -268,7 +268,7 @@ class FhirValidationUtils {
     String startPath,
     Map<String, dynamic> fhirPaths,
     StructureDefinition structureDefinition,
-    Node? astNode, // Added astNode parameter
+    Node? astNode,
   ) async {
     var results = ValidationResults();
     final downloads = <String, dynamic>{};
@@ -278,10 +278,14 @@ class FhirValidationUtils {
       final FhirValidationObject value = fhirPathMatches[key]!;
 
       if (value.fullMatch != null && value.fullMatch != '') {
+        print('Processing full match for key: $key');
+
         if (value.type != null && value.type!.isNotEmpty) {
           if (isPrimitiveType(value.type!)) {
             if (!isValueAValidPrimitive(value.type!, fhirPaths[key])) {
-              var node = findAstNodeForPath(astNode, key); // Use astNode here
+              var node = findAstNodeForPath(astNode, key);
+              print(
+                  'Invalid primitive type for key: $key, type: ${value.type}');
               results.addResult(
                 startPath,
                 key,
@@ -293,7 +297,10 @@ class FhirValidationUtils {
             }
           }
 
-          if (value.binding?.valueSet != null) {
+          // Check value set binding for code fields within Coding elements or directly bound elements
+          if (value.binding?.valueSet != null &&
+              shouldCheckValueSet(key, fhirPaths[key])) {
+            print('Processing value set binding for key: $key');
             if (value.binding?.strength != null &&
                 value.binding!.strength !=
                     ElementDefinitionBindingStrength.example) {
@@ -358,27 +365,27 @@ class FhirValidationUtils {
 
               if (codes[canonical] != null && codes[canonical]!.isNotEmpty) {
                 bool codeIsInValueSet = false;
-
                 var valueToCheck = fhirPaths[key];
-                if (valueToCheck is Map) {
-                  if (valueToCheck.containsKey('coding')) {
-                    for (var coding in valueToCheck['coding']) {
-                      if (codes[canonical]!.contains(coding['code'])) {
-                        codeIsInValueSet = true;
-                        break;
-                      }
+
+                if (valueToCheck is Map && valueToCheck.containsKey('coding')) {
+                  for (var coding in valueToCheck['coding']) {
+                    if (codes[canonical]!.contains(coding['code'])) {
+                      codeIsInValueSet = true;
+                      break;
                     }
-                  } else if (valueToCheck.containsKey('code')) {
-                    codeIsInValueSet =
-                        codes[canonical]!.contains(valueToCheck['code']);
                   }
+                } else if (valueToCheck is Map &&
+                    valueToCheck.containsKey('code')) {
+                  codeIsInValueSet =
+                      codes[canonical]!.contains(valueToCheck['code']);
                 } else if (codes[canonical]!.contains(valueToCheck)) {
                   codeIsInValueSet = true;
                 }
 
                 if (!codeIsInValueSet) {
-                  var node =
-                      findAstNodeForPath(astNode, key); // Use astNode here
+                  var node = findAstNodeForPath(astNode, key);
+                  print(
+                      'Code not in value set for key: $key, value: ${fhirPaths[key]}');
                   if (value.binding!.strength ==
                       ElementDefinitionBindingStrength.required_) {
                     results.addResult(
@@ -423,30 +430,51 @@ class FhirValidationUtils {
                     );
                   }
                 }
+              } else {
+                var node = findAstNodeForPath(astNode, key);
+                print(
+                    'No codes available in value set for key: $key, value set: $canonical');
+                results.addResult(
+                  startPath,
+                  key,
+                  'The definition for the Code System with URI \'$canonical\' doesn\'t provide any codes so the code cannot be validated',
+                  Severity.information,
+                  line: node?.loc?.start.line,
+                  column: node?.loc?.start.column,
+                );
               }
             }
           }
         }
-      }
 
-      final constraints = value.constraint;
-      for (final constraint in constraints ?? <ElementDefinitionConstraint>[]) {
-        if (!await evaluateConstraint(
-            constraint.expression!, fhirPaths[key], startPath)) {
-          var node = findAstNodeForPath(astNode, key); // Use astNode here
-          results.addResult(
-            startPath,
-            key,
-            "Constraint violated: ${constraint.human}",
-            Severity.error,
-            line: node?.loc?.start.line,
-            column: node?.loc?.start.column,
-          );
+        final constraints = value.constraint;
+        for (final constraint
+            in constraints ?? <ElementDefinitionConstraint>[]) {
+          if (!await evaluateConstraint(
+              constraint.expression!, fhirPaths[key], startPath)) {
+            var node = findAstNodeForPath(astNode, key);
+            print(
+                'Constraint violated for key: $key, constraint: ${constraint.human}');
+            results.addResult(
+              startPath,
+              key,
+              "Constraint violated: ${constraint.human}",
+              Severity.error,
+              line: node?.loc?.start.line,
+              column: node?.loc?.start.column,
+            );
+          }
         }
       }
     }
 
+    print('Finished processing checkPaths');
     return results;
+  }
+
+  static bool shouldCheckValueSet(String key, dynamic value) {
+    // Check if the key indicates a Coding element or a direct value set binding
+    return (key.endsWith('.code') || (value is! Map));
   }
 
   /// Utility function to check if a type is a primitive type
@@ -612,29 +640,21 @@ class FhirValidationUtils {
     ValidationResults results,
     String startPath,
     String type,
-    Node? astNode, // Added astNode parameter
+    Node? astNode,
   ) {
-    // Get a list of paths from the StructureDefinition snapshot's elements
     final structureDefinitionPaths =
         structureDefinition.snapshot?.element.map((e) => e.path).toList() ??
             <String>[];
     final notFound = <String>{};
 
-    // Remove any null values from the list
     structureDefinitionPaths.removeWhere((element) => element == null);
 
-    // Iterate over each element in the StructureDefinition snapshot
     for (final path in structureDefinitionPaths) {
-      // Print current element path and type for debugging
-      // print('Checking element path: ${element.path}, type: ${element.type}');
-
-      // Check if the element's path is not the root type
       if (path != null &&
           path != type &&
           !notFound.any((element) => path.startsWith(element))) {
         bool found = false;
 
-        // Check if the current path in fhirPaths matches the element path without indexes
         for (var key in fhirPaths.keys) {
           if (key.replaceAll(RegExp(r'\[[0-9]+\]'), '') == path) {
             found = true;
@@ -642,31 +662,23 @@ class FhirValidationUtils {
           }
         }
 
-        // If the element is not found in fhirPaths and has a minimum cardinality greater than 0
         if (!found) {
           final element = structureDefinition.differential?.element
               .firstWhereOrNull((element) => element.path == path);
           if (element?.min != null &&
               element!.min?.value != null &&
               element.min!.value! > 0) {
-            // Add an error to returnMap for the missing required field
-            if (element.path != null) {
-              var node = FhirValidationUtils.findAstNodeForPath(
-                  astNode, element.path ?? ''); // Use astNode here
-              results.addResult(
-                startPath,
-                element.path ?? '',
-                'minimum required = ${element.min}, but only 0 found '
-                "(from '${structureDefinition.url}${structureDefinition.version == null ? '' : '|${structureDefinition.version}'}')",
-                Severity.error,
-                line: node?.loc?.start.line,
-                column: node?.loc?.start.column,
-              );
-            }
+            var node = findAstNodeForPath(astNode, path);
+            results.addResult(
+              startPath,
+              path,
+              'minimum required = ${element.min}, but only 0 found '
+              "(from '${structureDefinition.url}${structureDefinition.version == null ? '' : '|${structureDefinition.version}'}')",
+              Severity.error,
+              line: node?.loc?.start.line,
+              column: node?.loc?.start.column,
+            );
           }
-          // If the element is not found, it doesn't matter if it's required or
-          // not, we don't need to evaluate any sub paths, because we know they
-          // don't exist
           if (element?.path != null) {
             notFound.add(element!.path!);
           }
