@@ -1,0 +1,152 @@
+{
+    "birthDate": "2007-02-20",
+    "id": "example",
+    "address": [
+        {
+            "city": "Mounds",
+            "postalCode": "74047",
+            "state": "OK",
+            "country": "US",
+            "line": [
+                "49 Meadow St"
+            ]
+        }
+    ],
+    "text": {
+        "status": "generated",
+        "div": "<div xmlns='http://www.w3.org/1999/xhtml'>\n  <p>\n    <b>Generated Narrative with Details</b>\n  </p>\n  <p>\n    <b>id</b>: example</p>\n  <p>\n    <b>identifier</b>: Medical Record Number = 1032702 (USUAL)</p>\n  <p>\n    <b>active</b>: true</p>\n  <p>\n    <b>name</b>: Amy V. Shaw</p>\n  <p>\n    <b>telecom</b>: ph: 555-555-5555(HOME), amy.shaw@example.com</p>\n  <p>\n    <b>gender</b>:</p>\n  <p>\n    <b>birthsex</b>: Female</p>\n  <p>\n    <b>birthDate</b>: Feb 20, 2007</p>\n  <p>\n    <b>address</b>: 49 Meadow St Mounds OK 74047 US</p>\n  <p>\n    <b>race</b>: White, American Indian or Alaska Native, Asian, Shoshone, Filipino</p>\n  <p>\n    <b>ethnicity</b>: Hispanic or Latino, Dominican, Mexican</p>\n</div>"
+    },
+    "gender": "female",
+    "telecom": [
+        {
+            "use": "home",
+            "value": "555-555-5555",
+            "system": "phone"
+        },
+        {
+            "system": "email",
+            "value": "amy.shaw@example.com"
+        }
+    ],
+    "meta": {
+        "profile": [
+            "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+        ]
+    },
+    "extension": [
+        {
+            "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race",
+            "extension": [
+                {
+                    "url": "ombCategory",
+                    "valueCoding": {
+                        "code": "2106-3",
+                        "system": "urn:oid:2.16.840.1.113883.6.238",
+                        "display": "White"
+                    }
+                },
+                {
+                    "url": "ombCategory",
+                    "valueCoding": {
+                        "code": "1002-5",
+                        "system": "urn:oid:2.16.840.1.113883.6.238",
+                        "display": "American Indian or Alaska Native"
+                    }
+                },
+                {
+                    "url": "ombCategory",
+                    "valueCoding": {
+                        "code": "2028-9",
+                        "system": "urn:oid:2.16.840.1.113883.6.238",
+                        "display": "Asian"
+                    }
+                },
+                {
+                    "url": "detailed",
+                    "valueCoding": {
+                        "code": "1586-7",
+                        "system": "urn:oid:2.16.840.1.113883.6.238",
+                        "display": "Shoshone"
+                    }
+                },
+                {
+                    "url": "detailed",
+                    "valueCoding": {
+                        "code": "2036-2",
+                        "system": "urn:oid:2.16.840.1.113883.6.238",
+                        "display": "Filipino"
+                    }
+                },
+                {
+                    "url": "text",
+                    "valueString": "Mixed"
+                }
+            ]
+        },
+        {
+            "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity",
+            "extension": [
+                {
+                    "url": "ombCategory",
+                    "valueCoding": {
+                        "code": "2135-2",
+                        "system": "urn:oid:2.16.840.1.113883.6.238",
+                        "display": "Hispanic or Latino"
+                    }
+                },
+                {
+                    "url": "detailed",
+                    "valueCoding": {
+                        "code": "2184-0",
+                        "system": "urn:oid:2.16.840.1.113883.6.238",
+                        "display": "Dominican"
+                    }
+                },
+                {
+                    "url": "detailed",
+                    "valueCoding": {
+                        "code": "2148-5",
+                        "system": "urn:oid:2.16.840.1.113883.6.238",
+                        "display": "Mexican"
+                    }
+                },
+                {
+                    "url": "text",
+                    "valueString": "Hispanic or Latino"
+                }
+            ]
+        },
+        {
+            "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex",
+            "valueCode": "F"
+        }
+    ],
+    "name": [
+        {
+            "family": "Shaw",
+            "given": [
+                "Amy",
+                "V."
+            ]
+        }
+    ],
+    "resourceType": "Patient",
+    "identifier": [
+        {
+            "value": "1032702",
+            "use": "usual",
+            "system": "http://hospital.smarthealthit.org",
+            "type": {
+                "text": "Medical Record Number",
+                "coding": [
+                    {
+                        "code": "MR",
+                        "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                        "display": "Medical Record Number"
+                    }
+                ]
+            }
+        }
+    ],
+    "active": true
+}

@@ -1,0 +1,112 @@
+{
+  "address": [
+    {
+      "state": "OK",
+      "postalCode": "74047",
+      "country": "US",
+      "city": "Mounds",
+      "line": ["49 Meadow St"]
+    }
+  ],
+  "extension": [
+    {
+      "extension": [
+        {
+          "valueCoding": {
+            "system": "urn:oid:2.16.840.1.113883.6.238",
+            "display": "White",
+            "code": "2106-3"
+          },
+          "url": "ombCategory"
+        },
+        {
+          "valueCoding": {
+            "system": "urn:oid:2.16.840.1.113883.6.238",
+            "display": "American Indian or Alaska Native",
+            "code": "1002-5"
+          },
+          "url": "ombCategory"
+        },
+        {
+          "valueCoding": {
+            "system": "urn:oid:2.16.840.1.113883.6.238",
+            "display": "Asian",
+            "code": "2028-9"
+          },
+          "url": "ombCategory"
+        },
+        {
+          "valueCoding": {
+            "system": "urn:oid:2.16.840.1.113883.6.238",
+            "display": "Shoshone",
+            "code": "1586-7"
+          },
+          "url": "detailed"
+        },
+        {
+          "valueCoding": {
+            "system": "urn:oid:2.16.840.1.113883.6.238",
+            "display": "Filipino",
+            "code": "2036-2"
+          },
+          "url": "detailed"
+        },
+        {"valueString": "Mixed", "url": "text"}
+      ],
+      "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race"
+    },
+    {
+      "extension": [
+        {
+          "valueCoding": {
+            "system": "urn:oid:2.16.840.1.113883.6.238",
+            "display": "Hispanic or Latino",
+            "code": "2135-2"
+          },
+          "url": "ombCategory"
+        },
+        {
+          "valueCoding": {
+            "system": "urn:oid:2.16.840.1.113883.6.238",
+            "display": "Dominican",
+            "code": "2184-0"
+          },
+          "url": "detailed"
+        },
+        {
+          "valueCoding": {
+            "system": "urn:oid:2.16.840.1.113883.6.238",
+            "display": "Mexican",
+            "code": "2148-5"
+          },
+          "url": "detailed"
+        },
+        {"valueString": "Hispanic or Latino", "url": "text"}
+      ],
+      "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity"
+    },
+    {
+      "valueCode": "F",
+      "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex"
+    }
+  ],
+  "active": true,
+  "resourceType": "Patient",
+  "meta": {
+    "profile": [
+      "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+    ]
+  },
+  "birthDate": "2007-02-20",
+  "gender": "female",
+  "telecom": [
+    {"value": "555-555-5555", "system": "phone", "use": "home"},
+    {"system": "email", "value": "amy.shaw@example.com"}
+  ],
+  "text": {
+    "status": "generated",
+    "div":
+        "<div xmlns='http://www.w3.org/1999/xhtml'>\n  <p>\n    <b>Generated Narrative with Details</b>\n  </p>\n  <p>\n    <b>id</b>: example</p>\n  <p>\n    <b>identifier</b>: Medical Record Number = 1032702 (USUAL)</p>\n  <p>\n    <b>active</b>: true</p>\n  <p>\n    <b>name</b>: Amy V. Shaw</p>\n  <p>\n    <b>telecom</b>: ph: 555-555-5555(HOME), amy.shaw@example.com</p>\n  <p>\n    <b>gender</b>:</p>\n  <p>\n    <b>birthsex</b>: Female</p>\n  <p>\n    <b>birthDate</b>: Feb 20, 2007</p>\n  <p>\n    <b>address</b>: 49 Meadow St Mounds OK 74047 US</p>\n  <p>\n    <b>race</b>: White, American Indian or Alaska Native, Asian, Shoshone, Filipino</p>\n  <p>\n    <b>ethnicity</b>: Hispanic or Latino, Dominican, Mexican</p>\n</div>"
+  },
+  "id": "example"
+}

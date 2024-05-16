@@ -10,6 +10,10 @@ class ResourceCache {
     return _instance;
   }
 
+  bool containsKey(String key) {
+    return _cache.containsKey(key);
+  }
+
   // Private constructor to prevent external instantiation
   ResourceCache._internal();
 

@@ -1,0 +1,189 @@
+{
+  "resourceType": "OperationOutcome",
+  "issue": [
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line",
+          "valueInteger": 19
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col",
+          "valueInteger": 12
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
+          "valueString": "Terminology_TX_NoValid_12"
+        }
+      ],
+      "severity": "error",
+      "code": "processing",
+      "diagnostics": "The Coding provided (urn:oid:2.16.840.1.113883.6.238#2106-3) is not in the value set 'OMB Race Categories' (http://hl7.org/fhir/us/core/ValueSet/omb-race-category|3.0.1), and a code is required from this value set.  (error message = Unable to validate code urn:oid:2.16.840.1.113883.6.238#2106-3 - Unknown code \"urn:oid:2.16.840.1.113883.6.238#2106-3\". Code validation occurred using a ValueSet expansion that was pre-calculated at 2024-04-05T19:29:53.912+00:00 (41 days ago))",
+      "location": [
+        "Parameters.parameter[0].resource/*Patient/example*/.extension[0].extension[0].value.ofType(Coding)",
+        "Line[19] Col[12]"
+      ]
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line",
+          "valueInteger": 33
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col",
+          "valueInteger": 12
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
+          "valueString": "Terminology_TX_NoValid_12"
+        }
+      ],
+      "severity": "error",
+      "code": "processing",
+      "diagnostics": "The Coding provided (urn:oid:2.16.840.1.113883.6.238#2028-9) is not in the value set 'OMB Race Categories' (http://hl7.org/fhir/us/core/ValueSet/omb-race-category|3.0.1), and a code is required from this value set.  (error message = Unable to validate code urn:oid:2.16.840.1.113883.6.238#2028-9 - Unknown code \"urn:oid:2.16.840.1.113883.6.238#2028-9\". Code validation occurred using a ValueSet expansion that was pre-calculated at 2024-04-05T19:29:53.912+00:00 (41 days ago))",
+      "location": [
+        "Parameters.parameter[0].resource/*Patient/example*/.extension[0].extension[2].value.ofType(Coding)",
+        "Line[33] Col[12]"
+      ]
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line",
+          "valueInteger": 40
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col",
+          "valueInteger": 12
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
+          "valueString": "Terminology_TX_NoValid_12"
+        }
+      ],
+      "severity": "error",
+      "code": "processing",
+      "diagnostics": "The Coding provided (urn:oid:2.16.840.1.113883.6.238#1586-7) is not in the value set 'Detailed Race' (http://hl7.org/fhir/us/core/ValueSet/detailed-race|3.0.1), and a code is required from this value set.  (error message = Unable to validate code urn:oid:2.16.840.1.113883.6.238#1586-7 - Unknown code \"urn:oid:2.16.840.1.113883.6.238#1586-7\". Code validation occurred using a ValueSet expansion that was pre-calculated at 2024-04-05T19:29:53.871+00:00 (41 days ago))",
+      "location": [
+        "Parameters.parameter[0].resource/*Patient/example*/.extension[0].extension[3].value.ofType(Coding)",
+        "Line[40] Col[12]"
+      ]
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line",
+          "valueInteger": 47
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col",
+          "valueInteger": 12
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
+          "valueString": "Terminology_TX_NoValid_12"
+        }
+      ],
+      "severity": "error",
+      "code": "processing",
+      "diagnostics": "The Coding provided (urn:oid:2.16.840.1.113883.6.238#2036-2) is not in the value set 'Detailed Race' (http://hl7.org/fhir/us/core/ValueSet/detailed-race|3.0.1), and a code is required from this value set.  (error message = Unable to validate code urn:oid:2.16.840.1.113883.6.238#2036-2 - Unknown code \"urn:oid:2.16.840.1.113883.6.238#2036-2\". Code validation occurred using a ValueSet expansion that was pre-calculated at 2024-04-05T19:29:53.871+00:00 (41 days ago))",
+      "location": [
+        "Parameters.parameter[0].resource/*Patient/example*/.extension[0].extension[4].value.ofType(Coding)",
+        "Line[47] Col[12]"
+      ]
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line",
+          "valueInteger": 60
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col",
+          "valueInteger": 12
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
+          "valueString": "Terminology_TX_NoValid_12"
+        }
+      ],
+      "severity": "error",
+      "code": "processing",
+      "diagnostics": "The Coding provided (urn:oid:2.16.840.1.113883.6.238#2135-2) is not in the value set 'OMB Ethnicity Categories' (http://hl7.org/fhir/us/core/ValueSet/omb-ethnicity-category|3.0.1), and a code is required from this value set.  (error message = Unable to validate code urn:oid:2.16.840.1.113883.6.238#2135-2 - No codes in ValueSet belong to CodeSystem with URL urn:oid:2.16.840.1.113883.6.238)",
+      "location": [
+        "Parameters.parameter[0].resource/*Patient/example*/.extension[1].extension[0].value.ofType(Coding)",
+        "Line[60] Col[12]"
+      ]
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line",
+          "valueInteger": 5
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col",
+          "valueInteger": 6
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
+          "valueString": "Validation_VAL_Profile_Minimum"
+        }
+      ],
+      "severity": "error",
+      "code": "processing",
+      "diagnostics": "Patient.identifier: minimum required = 1, but only found 0 (from http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient|3.0.1)",
+      "location": [
+        "Parameters.parameter[0].resource/*Patient/example*/",
+        "Line[5] Col[6]"
+      ]
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line",
+          "valueInteger": 5
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col",
+          "valueInteger": 6
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
+          "valueString": "Validation_VAL_Profile_Minimum"
+        }
+      ],
+      "severity": "error",
+      "code": "processing",
+      "diagnostics": "Patient.name: minimum required = 1, but only found 0 (from http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient|3.0.1)",
+      "location": [
+        "Parameters.parameter[0].resource/*Patient/example*/",
+        "Line[5] Col[6]"
+      ]
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line",
+          "valueInteger": 101
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col",
+          "valueInteger": 22
+        },
+        {
+          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id",
+          "valueString": "TERMINOLOGY_TX_HINT"
+        }
+      ],
+      "severity": "information",
+      "code": "processing",
+      "diagnostics": "Code validation occurred using a ValueSet expansion that was pre-calculated at 2024-04-05T19:29:54.396+00:00 (41 days ago)",
+      "location": [
+        "Parameters.parameter[0].resource/*Patient/example*/.address[0].state",
+        "Line[101] Col[22]"
+      ]
+    }
+  ]
+}

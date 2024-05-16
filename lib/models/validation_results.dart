@@ -1,20 +1,19 @@
+import 'package:fhir_r4/fhir_r4.dart';
+import 'package:fhir_validation/fhir_validation.dart';
+
 class ValidationResults {
-  final Map<Severity, List<ValidationNotification>> results = {
-    Severity.error: [],
-    Severity.warning: [],
-    Severity.information: [],
-  };
+  final List<ValidationDiagnostics> results = [];
 
   void addResult(
-      String startPath, String currentPath, String newItem, Severity severity) {
+      String startPath, String currentPath, String newItem, Severity severity,
+      {int? line, int? column}) {
     final String path = fullPathFromStartAndCurrent(startPath, currentPath);
-    results[severity]!.add(ValidationNotification(path, newItem));
+    results.add(ValidationDiagnostics(path, newItem, severity,
+        line: line, column: column));
   }
 
   void combineResults(ValidationResults other) {
-    for (var severity in results.keys) {
-      results[severity]!.addAll(other.results[severity]!);
-    }
+    results.addAll(other.results);
   }
 
   String fullPathFromStartAndCurrent(String startPath, String currentPath) {
@@ -26,8 +25,23 @@ class ValidationResults {
   }
 
   Map<String, dynamic> toJson() {
-    return results.map((severity, notifications) => MapEntry(
-        severity.toString(), notifications.map((e) => e.toJson()).toList()));
+    final error = results
+        .where((element) => element.severity == Severity.error)
+        .map((e) => e.toJson())
+        .toList();
+    final warning = results
+        .where((element) => element.severity == Severity.warning)
+        .map((e) => e.toJson())
+        .toList();
+    final information = results
+        .where((element) => element.severity == Severity.information)
+        .map((e) => e.toJson())
+        .toList();
+    return {
+      'error': error,
+      'warning': warning,
+      'information': information,
+    };
   }
 
   @override
@@ -35,37 +49,99 @@ class ValidationResults {
     return toJson().toString();
   }
 
-  Map<String, dynamic> organizeValidationOutput() {
-    return {
-      'Validation Errors': results[Severity.error]!.isEmpty
-          ? 'none were found'
-          : results[Severity.error]!,
-      'Validation Warnings': results[Severity.warning]!.isEmpty
-          ? 'none were found'
-          : results[Severity.warning]!,
-      'Validation Information': results[Severity.information]!.isEmpty
-          ? 'none were found'
-          : results[Severity.information]!,
-    };
+  OperationOutcomeIssue makeOperationOutcomeIssue(ValidationDiagnostics e) =>
+      OperationOutcomeIssue(
+          severity: FhirCode(e.severity.toString()),
+          code: FhirCode('processing'),
+          diagnostics: e.diagnostics,
+          extension_: e.line == null && e.column == null
+              ? null
+              : [
+                  if (e.line != null)
+                    FhirExtension(
+                      url: FhirUri(
+                          'http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line'),
+                      valueInteger:
+                          e.line == null ? null : FhirInteger(e.line!),
+                    ),
+                  if (e.column != null)
+                    FhirExtension(
+                      url: FhirUri(
+                          'http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col'),
+                      valueInteger:
+                          e.column == null ? null : FhirInteger(e.column!),
+                    ),
+                ],
+          location: [
+            e.path,
+            if (e.line != null && e.column != null)
+              'Line[${e.line}] Column[${e.column}]',
+            if (e.line != null && e.column == null) 'Line[${e.line}]',
+            if (e.line == null && e.column != null) 'Column[${e.column}]',
+          ]);
+
+  OperationOutcome toOperationOutcome() {
+    final error =
+        results.where((element) => element.severity == Severity.error).toList();
+    final warning = results
+        .where((element) => element.severity == Severity.warning)
+        .toList();
+    final information = results
+        .where((element) => element.severity == Severity.information)
+        .toList();
+    final issues = <OperationOutcomeIssue>[];
+    issues.addAll(error.map((e) => makeOperationOutcomeIssue(e)).toList());
+    issues.addAll(warning.map((e) => makeOperationOutcomeIssue(e)).toList());
+    issues
+        .addAll(information.map((e) => makeOperationOutcomeIssue(e)).toList());
+    final outcome = OperationOutcome(issue: issues);
+    return outcome;
+  }
+
+  String prettyPrint() {
+    return jsonPrettyPrint(toOperationOutcome().toJson());
   }
 }
 
-class ValidationNotification {
+class ValidationDiagnostics {
   final String path;
-  final String notification;
+  final String diagnostics;
+  final Severity severity;
+  final int? line;
+  final int? column;
 
-  ValidationNotification(this.path, this.notification);
+  ValidationDiagnostics(this.path, this.diagnostics, this.severity,
+      {this.line, this.column});
 
   Map<String, dynamic> toJson() {
     return {
       'path': path,
-      'notification': notification,
+      'diagnostics': diagnostics,
+      'severity': severity.toString(),
+      if (line != null) 'line': line,
+      if (column != null) 'column': column,
     };
   }
 
   @override
   String toString() {
     return toJson().toString();
+  }
+
+  ValidationDiagnostics copyWith({
+    String? path,
+    String? diagnostics,
+    Severity? severity,
+    int? line,
+    int? column,
+  }) {
+    return ValidationDiagnostics(
+      path ?? this.path,
+      diagnostics ?? this.diagnostics,
+      severity ?? this.severity,
+      line: line ?? this.line,
+      column: column ?? this.column,
+    );
   }
 }
 

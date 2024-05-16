@@ -48,26 +48,27 @@ Future<Map<String, dynamic>?> _getResource(
   String resourceType,
   Map<String, Map<String, dynamic>> localMap,
 ) async {
-  // Normalize URL
-  final normalizedUrl = url.contains('|') ? url.split('|')[0] : url;
-
   // Check cache first
-  final cachedResource = resourceCache.get(normalizedUrl);
+  final cachedResource = resourceCache.get(url);
   if (cachedResource != null) {
     return cachedResource;
   }
 
-  final result = localMap[normalizedUrl];
+  final result = localMap[url];
   if (result != null) {
-    resourceCache.set(normalizedUrl, result);
+    resourceCache.set(url, result);
     return result;
   } else {
-    final Map<String, dynamic>? result =
-        await _requestFromCanonical(normalizedUrl);
+    final Map<String, dynamic>? result = await _requestFromCanonical(url);
     if (result != null && result['resourceType'] == resourceType) {
-      resourceCache.set(normalizedUrl, result);
+      resourceCache.set(url, result);
       return result;
     }
+  }
+  // Normalize URL
+  final normalizedUrl = url.contains('|') ? url.split('|')[0] : url;
+  if (normalizedUrl != url) {
+    _getResource(normalizedUrl, resourceType, localMap);
   }
   return null;
 }
