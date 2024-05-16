@@ -38,22 +38,20 @@ class FhirValidatorUtils {
     if (node is ObjectNode) {
       for (var property in node.children) {
         final newPath =
-            path.isEmpty ? property.key?.value : '$path.${property.key?.value}';
-        if (newPath != null) {
-          final matchingElement =
-              elements.firstWhereOrNull((element) => element.path == newPath);
-          if (matchingElement?.path == null) {
-            results.addResult(
-              '',
-              newPath,
-              'Unexpected element found: $newPath',
-              Severity.error,
-              line: property.key?.loc?.start.line,
-              column: property.key?.loc?.start.column,
-            );
-          } else {
-            _traverseAst(property.value!, newPath, elements, results);
-          }
+            path.isEmpty ? property.key.value : '$path.${property.key.value}';
+        final matchingElement =
+            elements.firstWhereOrNull((element) => element.path == newPath);
+        if (matchingElement == null) {
+          results.addResult(
+            '',
+            newPath,
+            'Unexpected element found: $newPath',
+            Severity.error,
+            line: property.key.loc?.start.line,
+            column: property.key.loc?.start.column,
+          );
+        } else {
+          _traverseAst(property.value, newPath, elements, results);
         }
       }
     } else if (node is ArrayNode) {

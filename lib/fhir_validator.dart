@@ -1,143 +1,133 @@
-import 'dart:convert';
 import 'package:fhir_r4/fhir_r4.dart';
 import 'package:fhir_validation/fhir_validation.dart';
 
-import 'fhir_validation_utils.dart';
+import 'fhir_validator_utils.dart';
 
 class FhirValidator {
   var results = ValidationResults();
+
+  ValidationResults _results() {
+    final newResults = results.copyWith();
+    results = ValidationResults();
+    return newResults;
+  }
 
   Future<ValidationResults> validateFhir({
     required Map<String, dynamic> resourceToValidate,
     StructureDefinition? structureDefinition,
   }) async {
-    final String resourceString = json.encode(resourceToValidate);
+    // PrettyPrinting makes lines and columns correct
+    final String resourceString = prettyPrintJson(resourceToValidate);
+
     // Parse the JSON with position information
-    final jsonAst = parse(resourceString, Settings());
+    final node = parse(resourceString, Settings());
 
     // Extract the resourceType from the resource
-    final typeNode =
-        FhirValidationUtils.getPropertyNode(jsonAst, 'resourceType');
-    if (typeNode == null || resourceToValidate['resourceType'] == null) {
-      return results
-        ..addResult(
-          '',
-          '',
-          'ResourceType is missing',
-          Severity.error,
-          line: typeNode?.loc?.start.line,
-          column: typeNode?.loc?.start.column,
-        );
+    final typeNode = node.getPropertyNode('resourceType');
+    if (typeNode == null ||
+        typeNode is! LiteralNode ||
+        typeNode.value == null) {
+      results.addResult(
+        '',
+        '',
+        'ResourceType is missing',
+        Severity.error,
+        line: typeNode?.loc?.start.line,
+        column: typeNode?.loc?.start.column,
+      );
+      return _results();
     }
-    final type = resourceToValidate['resourceType'];
 
-    // Extract profiles from the resource if any are specified in the meta section
-    final profiles = FhirValidationUtils.extractProfiles(resourceToValidate);
+    final type = typeNode.value as String;
+    final FhirValidatorUtils utils = FhirValidatorUtils();
+
+    if (structureDefinition != null) {
+      // If structure definition is found, validate the resource against it
+      results.combineResults(
+        await utils.evaluateFromPaths(
+          mapToValidate: resourceToValidate,
+          structureDefinition: structureDefinition,
+          type: type,
+          startPath: type,
+          node: node,
+        ),
+      );
+      return _results();
+    }
+
+    // Retrieve profiles for the resource
+    List<Map<String, dynamic>> profiles = await getProfiles(node);
+
+    if (profiles.isNotEmpty) {
+      // If profiles are found, validate the resource against each profile
+      for (var profile in profiles) {
+        results.combineResults(
+          await utils.evaluateFromPaths(
+            mapToValidate: resourceToValidate,
+            structureDefinition: StructureDefinition.fromJson(profile),
+            type: type,
+            startPath: type,
+            node: node,
+          ),
+        );
+      }
+      return _results();
+    }
+
+    // So we don't have profiles or a StructureDefinition, so we just go with
+    // a generic StructureDefinition
+    final definitionMap = await getStructureDefinition(type);
+    if (definitionMap == null) {
+      // If no structure definition is found, return an error
+      results.addResult(
+        '',
+        '',
+        'No StructureDefinition was found for this Resource, which is a resourceType of: $type',
+        Severity.error,
+      );
+      return _results();
+    } else {
+      // Parse the structure definition from JSON
+      structureDefinition = StructureDefinition.fromJson(definitionMap);
+      results.combineResults(
+        await utils.evaluateFromPaths(
+          mapToValidate: resourceToValidate,
+          structureDefinition: structureDefinition,
+          type: type,
+          startPath: type,
+          node: node,
+        ),
+      );
+      return _results();
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getProfiles(Node node) async {
     // List to hold profile definitions retrieved
     List<Map<String, dynamic>> profileDefinitions = [];
+    if (node is ObjectNode) {
+      // Extract profiles from the resource if any are specified in the meta section
+      final profiles = node.extractProfileNodes();
 
-    // Retrieve profile definitions for each profile URL
-    for (var profile in profiles) {
-      try {
-        final profileDef = await getProfile(profile);
-        if (profileDef != null) {
-          profileDefinitions.add(profileDef);
-        }
-      } catch (e) {
-        // If there is an error retrieving a profile, return an error message
-        return results
-          ..addResult(
+      // Retrieve profile definitions for each profile URL
+      for (var profile in profiles) {
+        try {
+          final profileDef = await getProfile(profile.value);
+          if (profileDef != null) {
+            profileDefinitions.add(profileDef);
+          }
+        } catch (e) {
+          // If there is an error retrieving a profile, return an error message
+          results.addResult(
             '',
             '',
             'Failed to retrieve profile definition: $profile',
             Severity.error,
           );
-      }
-    }
-
-    // If no profiles are found, use the regular structure definition
-    if (profileDefinitions.isEmpty) {
-      if (structureDefinition == null) {
-        // Retrieve the structure definition for the resource type
-        final definitionMap = await getStructureDefinition(type);
-        if (definitionMap == null) {
-          // If no structure definition is found, return an error
-          results.addResult(
-            '',
-            '',
-            'No StructureDefinition was found for this Resource, which is a resourceType of: $type',
-            Severity.error,
-          );
-        } else {
-          // Parse the structure definition from JSON
-          structureDefinition = StructureDefinition.fromJson(definitionMap);
         }
       }
-      if (structureDefinition == null) {
-        // If structure definition is still null, add an error message to returnMap
-        return results
-          ..addResult(
-            '',
-            '',
-            'No StructureDefinition was found for this Resource, which is a resourceType of: $type',
-            Severity.error,
-          );
-      } else {
-        // If structure definition is found, validate the resource against it
-        results.combineResults(
-          await validateFhirMaps(
-            mapToValidate: resourceToValidate,
-            structureDefinition: structureDefinition,
-            type: type,
-            startPath: type,
-            astNode: jsonAst,
-          ),
-        );
-      }
-    } else {
-      // If profiles are found, validate the resource against each profile
-      for (var profileDef in profileDefinitions) {
-        results.combineResults(
-          await validateFhirMaps(
-            mapToValidate: resourceToValidate,
-            structureDefinition: StructureDefinition.fromJson(profileDef),
-            type: type,
-            startPath: type,
-            astNode: jsonAst,
-          ),
-        );
-      }
     }
 
-    // Return the final map with validation results
-    return results;
-  }
-
-  Future<ValidationResults> validateFhirMaps({
-    required Map<String, dynamic> mapToValidate,
-    required StructureDefinition structureDefinition,
-    required String type,
-    required String startPath,
-    Node? astNode,
-  }) async {
-    var results = ValidationResults();
-
-    // Create a list of all paths in the mapToValidate
-    final fhirPaths =
-        FhirValidationUtils.fhirPathsFromMap(value: mapToValidate, path: type);
-
-    // Evaluate the resource based on the generated paths and structure definition
-    final evaluationResults = await FhirValidationUtils.evaluateFromPaths(
-      fhirPaths,
-      structureDefinition,
-      type,
-      startPath,
-      mapToValidate,
-      astNode, // Pass astNode here
-    );
-
-    results.combineResults(evaluationResults);
-
-    return results;
+    return profileDefinitions;
   }
 }
