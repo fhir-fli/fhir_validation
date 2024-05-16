@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:fhir_r4/fhir_r4.dart';
 import 'package:fhir_validation/fhir_validation.dart';
 
@@ -12,7 +14,28 @@ class FhirValidator {
     return newResults;
   }
 
-  Future<ValidationResults> validateFhir({
+  Future<ValidationResults> validateFhirResource({
+    required Resource resourceToValidate,
+    StructureDefinition? structureDefinition,
+  }) {
+    return validateFhirMap(
+      resourceToValidate: resourceToValidate.toJson(),
+      structureDefinition: structureDefinition,
+    );
+  }
+
+  Future<ValidationResults> validateFhirString({
+    required String resourceToValidate,
+    StructureDefinition? structureDefinition,
+  }) async {
+    final resourceMap = json.decode(resourceToValidate) as Map<String, dynamic>;
+    return validateFhirMap(
+      resourceToValidate: resourceMap,
+      structureDefinition: structureDefinition,
+    );
+  }
+
+  Future<ValidationResults> validateFhirMap({
     required Map<String, dynamic> resourceToValidate,
     StructureDefinition? structureDefinition,
   }) async {

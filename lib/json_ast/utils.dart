@@ -22,3 +22,17 @@ String safeSubstring(String str, int start, int end) {
   }
   return '';
 }
+
+String unexpectedSymbol(String symbol, String source, int line, int column) {
+  final sourceOrEmpty = source != "" ? '$source:' : '';
+  final positionStr = '$sourceOrEmpty${line}:$column';
+  return 'Unexpected symbol <$symbol> at $positionStr';
+}
+
+String unexpectedEnd() => 'Unexpected end of input';
+
+String unexpectedToken(String token, String source, int line, int column) {
+  final sourceOrEmpty = source != "" ? '$source:' : '';
+  final positionStr = '$sourceOrEmpty${line}:$column';
+  return 'Unexpected token <$token> at $positionStr';
+}

@@ -1,8 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:fhir_r4/fhir_r4.dart';
-
-import 'json_ast/json_ast.dart';
-import 'models/validation_results.dart';
+import 'fhir_validation.dart';
 
 class FhirValidatorUtils {
   Future<ValidationResults> evaluateFromPaths({
@@ -37,21 +35,23 @@ class FhirValidatorUtils {
       ValidationResults results) {
     if (node is ObjectNode) {
       for (var property in node.children) {
-        final newPath =
-            path.isEmpty ? property.key.value : '$path.${property.key.value}';
-        final matchingElement =
-            elements.firstWhereOrNull((element) => element.path == newPath);
-        if (matchingElement == null) {
-          results.addResult(
-            '',
-            newPath,
-            'Unexpected element found: $newPath',
-            Severity.error,
-            line: property.key.loc?.start.line,
-            column: property.key.loc?.start.column,
-          );
-        } else {
-          _traverseAst(property.value, newPath, elements, results);
+        final propertyKey = property.key?.value;
+        if (propertyKey != null) {
+          final newPath = path.isEmpty ? propertyKey : '$path.$propertyKey';
+          final matchingElement =
+              elements.firstWhereOrNull((element) => element.path == newPath);
+          if (matchingElement == null) {
+            results.addResult(
+              path,
+              propertyKey,
+              'Unexpected element found: $newPath',
+              Severity.error,
+              line: property.key?.loc?.start.line,
+              column: property.key?.loc?.start.column,
+            );
+          } else if (property.value != null) {
+            _traverseAst(property.value!, newPath, elements, results);
+          }
         }
       }
     } else if (node is ArrayNode) {

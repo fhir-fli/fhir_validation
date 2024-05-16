@@ -46,7 +46,8 @@ Future<void> main() async {
       for (final resource in supportResources) {
         saveResource(resource);
       }
-      final result = await validator.validateFhirResource(resource: resource);
+      final result =
+          await validator.validateFhirResource(resourceToValidate: resource);
       print(result.prettyPrint());
     });
   });
