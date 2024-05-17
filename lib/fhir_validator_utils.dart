@@ -1,6 +1,5 @@
 import 'package:collection/collection.dart';
 import 'package:fhir_r4/fhir_r4.dart';
-import 'package:fhir_primitives/fhir_primitives.dart';
 import 'fhir_validation.dart';
 
 class FhirValidatorUtils {
@@ -34,30 +33,51 @@ class FhirValidatorUtils {
 
   Future<void> _traverseAst(Node node, String path,
       List<ElementDefinition> elements, ValidationResults results) async {
-    for (final element in elements) {}
-
+    print('node path : ${node.path}');
     if (node is ObjectNode) {
-      String base = path;
       for (var property in node.children) {
-        final propertyKey = property.key?.value;
-        if (propertyKey != null) {
-          final newPath = path.isEmpty ? propertyKey : '$path.$propertyKey';
-          var matchingElement =
-              elements.firstWhereOrNull((element) => element.path == newPath);
-
-          if (matchingElement == null) {
-            // Try resolving profiles if element is not directly matched
-            matchingElement =
-                await _resolveSubObject(property, newPath, elements, results);
-          }
-        }
+        _traverseAst(property, path, elements, results);
       }
     } else if (node is ArrayNode) {
       for (var i = 0; i < node.children.length; i++) {
-        final newPath = '$path[$i]';
-        await _traverseAst(node.children[i], newPath, elements, results);
+        await _traverseAst(node.children[i], '$path[$i]', elements, results);
       }
+    } else if (node is LiteralNode) {
+      // print('literalValue ${node.value} ${node.path}');
+    } else if (node is PropertyNode) {
+      if (node.value != null) {
+        _traverseAst(node.value!, path, elements, results);
+      }
+      for (final child in node.children) {
+        throw Exception('child node ${child.runtimeType}');
+      }
+    } else {
+      throw Exception('runtimeType: ${node.runtimeType}');
     }
+    // for (final element in elements) {}
+
+    // if (node is ObjectNode) {
+    //   String base = path;
+    //   for (var property in node.children) {
+    //     final propertyKey = property.key?.value;
+    //     if (propertyKey != null) {
+    //       final newPath = path.isEmpty ? propertyKey : '$path.$propertyKey';
+    //       var matchingElement =
+    //           elements.firstWhereOrNull((element) => element.path == newPath);
+
+    //       if (matchingElement == null) {
+    //         // Try resolving profiles if element is not directly matched
+    //         matchingElement =
+    //             await _resolveSubObject(property, newPath, elements, results);
+    //       }
+    //     }
+    //   }
+    // } else if (node is ArrayNode) {
+    //   for (var i = 0; i < node.children.length; i++) {
+    //     final newPath = '$path[$i]';
+    //     await _traverseAst(node.children[i], newPath, elements, results);
+    //   }
+    // }
   }
 
   bool _isPrimitive(ElementDefinition element) {
