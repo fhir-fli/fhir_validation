@@ -95,7 +95,7 @@ bool isValueAValidPrimitive(String primitiveClass, dynamic value) {
       case 'uuid':
         return FhirUuid.fromJson(value).isValid;
       case 'string':
-        return true;
+        return value is String;
       default:
         return false;
     }
