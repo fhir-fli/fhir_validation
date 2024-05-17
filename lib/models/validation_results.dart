@@ -4,9 +4,42 @@ import 'package:fhir_validation/fhir_validation.dart';
 class ValidationResults {
   final List<ValidationDiagnostics> results = [];
 
-  void addResult(String path, String newItem, Severity severity,
-      {int? line, int? column}) {
-    results.add(ValidationDiagnostics(path, newItem, severity,
+  void addResult(Node? node, String newItem, Severity severity) {
+    int? line;
+    int? column;
+    switch (node) {
+      case ObjectNode _:
+        {
+          line = node.loc?.start.line;
+          column = node.loc?.start.column;
+        }
+        break;
+      case ArrayNode _:
+        {
+          line = node.loc?.start.line;
+          column = node.loc?.start.column;
+        }
+        break;
+      case PropertyNode _:
+        {
+          line = node.key?.loc?.start.line ?? node.loc?.start.line;
+          column = node.key?.loc?.start.column ?? node.loc?.start.column;
+        }
+        break;
+      case LiteralNode _:
+        {
+          line = node.loc?.start.line;
+          column = node.loc?.start.column;
+        }
+        break;
+      case ValueNode _:
+        {
+          line = node.loc?.start.line;
+          column = node.loc?.start.column;
+        }
+        break;
+    }
+    results.add(ValidationDiagnostics(node?.path ?? '', newItem, severity,
         line: line, column: column));
   }
 

@@ -33,7 +33,7 @@ class FhirValidatorUtils {
       String replacePath,
       List<ElementDefinition> elements,
       ValidationResults results) async {
-    print('traverse: ${node.path}');
+    // print('traverse: ${node.path}');
     if (node is ObjectNode) {
       return _objectNode(node, originalPath, replacePath, elements, results);
     } else if (node is ArrayNode) {
@@ -51,7 +51,7 @@ class FhirValidatorUtils {
       String replacePath,
       List<ElementDefinition> elements,
       ValidationResults results) async {
-    print('object: ${node.path}');
+    // print('object: ${node.path}');
     for (var property in node.children) {
       results = await _propertyNode(
           property, originalPath, replacePath, elements, results);
@@ -65,7 +65,7 @@ class FhirValidatorUtils {
       String replacePath,
       List<ElementDefinition> elements,
       ValidationResults results) async {
-    print('array: ${node.path}');
+    // print('array: ${node.path}');
     for (final child in node.children) {
       if (child is LiteralNode) {
         final currentPath =
@@ -76,11 +76,9 @@ class FhirValidatorUtils {
           results = await _literalNode(child, element, results);
         } else {
           results.addResult(
-            currentPath,
+            child,
             'Element not found in StructureDefinition - ${child.raw}',
             Severity.error,
-            line: child.loc?.start.line,
-            column: child.loc?.start.column,
           );
         }
       } else {
@@ -97,97 +95,159 @@ class FhirValidatorUtils {
       String replacePath,
       List<ElementDefinition> elements,
       ValidationResults results) async {
-    print('property: ${node.path}');
-    final currentPath = node.path;
+    // print('property: ${node.path}');
     final cleanLocalPath =
-        _cleanLocalPath(originalPath, replacePath, currentPath);
+        _cleanLocalPath(originalPath, replacePath, node.path);
     ElementDefinition? element =
         elements.firstWhereOrNull((element) => element.path == cleanLocalPath);
 
     // If the element is null, but the key is "resourceType" and the value is
     // a valid resourceType, then this is a valid entry, although it's not
     // in the structure maps
-    if (element == null) {
-      if (node.value is LiteralNode &&
-          node.key?.value == 'resourceType' &&
-          R4ResourceType.typesAsStrings
-              .contains((node.value as LiteralNode).value)) {
-        return results;
-      }
-    }
-    if (element == null) {
-      element = elements.firstWhereOrNull((element) =>
-          element.path != null &&
-          cleanLocalPath.startsWith(element.path!.replaceFirst('[x]', '')));
+    if (_isAResourceType(node, element)) {
+      return results;
     }
 
+    element ??= _polymorphicElement(cleanLocalPath, elements);
+
     if (element != null) {
-      // We get the code from the StructureDefinition to determine if it's
-      // a primitive type
-      final code = element.type?.first.code?.toString();
-      if (code != null && _isPrimitive(element)) {
-        if (node.value is LiteralNode) {
-          results =
-              await _literalNode(node.value as LiteralNode, element, results);
-        } else if (node.value is ArrayNode) {
-          results = await _arrayNode(node.value as ArrayNode, originalPath,
-              replacePath, elements, results);
-        } else {
-          throw Exception(
-              'Primitive element is not a Primitive or a List: ${node.value.runtimeType} at $currentPath');
-        }
-      } else if (code != null) {
-        // If not, then it's not a primitive structure, and we will need
-        // to find a separate StructureDefinition or Profile to validate
-        // the object.
-        final structureDefinitionMap = await getStructureDefinition(code);
-        final StructureDefinition? structureDefinition =
-            structureDefinitionMap != null
-                ? StructureDefinition.fromJson(structureDefinitionMap)
-                : null;
-        if (structureDefinition == null) {
-          return results
-            ..addResult(
-              currentPath,
-              'No StructureDefinition or Profile found for Element type $code',
-              Severity.error,
-              line: node.key?.loc?.start.line,
-              column: node.key?.loc?.start.column,
-            );
-        }
-        final newElements = extractElements(structureDefinition);
-        // If we find the StructureDefinition, we should traverse the AST
-        if (newElements.isNotEmpty) {
-          if (node.value != null) {
-            results = await _traverseAst(
-                node.value!, currentPath, code, newElements, results);
-          } else {
-            throw Exception('node is ${node.runtimeType} with null node.value');
-          }
-        } else {
-          results.addResult(
-            currentPath,
-            'No StructureDefinition or Profile found for Element type $code',
-            Severity.error,
-            line: node.key?.loc?.start.line,
-            column: node.key?.loc?.start.column,
-          );
-        }
-      }
+      return await _withElement(
+          node, element, originalPath, replacePath, elements, results);
     }
     // if we aren't able to find it in the elements, we should add it to the
     // ValidationResults as an error, and won't go looking for anything else
     else {
       return results
         ..addResult(
-          currentPath,
+          node,
           'Element not found in StructureDefinition',
           Severity.error,
-          line: node.loc?.start.line,
-          column: node.loc?.start.column,
         );
     }
-    return results;
+  }
+
+  Future<ValidationResults> _withElement(
+      PropertyNode node,
+      ElementDefinition element,
+      String originalPath,
+      String replacePath,
+      List<ElementDefinition> elements,
+      ValidationResults results) async {
+    // We get the code from the StructureDefinition to determine if it's
+    // a primitive type
+
+    final String? code = _findCode(element, node.path);
+    if (code != null) {
+      return await _withCode(
+          code, node, element, originalPath, replacePath, elements, results);
+    } else {
+      return await _withoutCode(
+          node, element, originalPath, replacePath, results);
+    }
+  }
+
+  Future<ValidationResults> _withoutCode(
+      PropertyNode node,
+      ElementDefinition element,
+      String originalPath,
+      String replacePath,
+      ValidationResults results) async {
+    final extension = element.extension_;
+    for (final ext in extension ?? <FhirExtension>[]) {
+      final url = ext.url?.toString();
+      if (url != null) {
+        final structureDefinition = await getStructureDefinition(url);
+        if (structureDefinition != null) {
+          final newElements = extractElements(
+              StructureDefinition.fromJson(structureDefinition));
+          return await _traverseAst(
+              node, originalPath, replacePath, newElements, results);
+        }
+      }
+    }
+    return results
+      ..addResult(
+        node,
+        element.toJson().toString(),
+        Severity.error,
+      );
+  }
+
+  Future<ValidationResults> _withCode(
+      String code,
+      PropertyNode node,
+      ElementDefinition element,
+      String originalPath,
+      String replacePath,
+      List<ElementDefinition> elements,
+      ValidationResults results) async {
+    if (isPrimitiveType(code)) {
+      return await _codeIsPrimitiveType(
+          node, element, originalPath, replacePath, elements, results);
+    } else {
+      return await _codeIsComplexType(
+          code, node, element, originalPath, replacePath, elements, results);
+    }
+  }
+
+  Future<ValidationResults> _codeIsComplexType(
+      String code,
+      PropertyNode node,
+      ElementDefinition element,
+      String originalPath,
+      String replacePath,
+      List<ElementDefinition> elements,
+      ValidationResults results) async {
+    // If not, then it's not a primitive structure, and we will need
+    // to find a separate StructureDefinition or Profile to validate
+    // the object.
+    final structureDefinitionMap = await getStructureDefinition(code);
+    final StructureDefinition? structureDefinition =
+        structureDefinitionMap != null
+            ? StructureDefinition.fromJson(structureDefinitionMap)
+            : null;
+    if (structureDefinition == null) {
+      return _noStructureDefinitionOrProfile(code, node, results);
+    }
+    final newElements = extractElements(structureDefinition);
+    // If we find the StructureDefinition, we should traverse the AST
+    if (newElements.isNotEmpty) {
+      if (node.value != null) {
+        return await _traverseAst(
+            node.value!, node.path, code, newElements, results);
+      } else {
+        throw Exception('node is ${node.runtimeType} with null node.value');
+      }
+    } else {
+      return _noStructureDefinitionOrProfile(code, node, results);
+    }
+  }
+
+  ValidationResults _noStructureDefinitionOrProfile(
+          String code, PropertyNode node, ValidationResults results) =>
+      results
+        ..addResult(
+          node,
+          'No StructureDefinition or Profile found for Element type $code',
+          Severity.error,
+        );
+
+  Future<ValidationResults> _codeIsPrimitiveType(
+      PropertyNode node,
+      ElementDefinition element,
+      String originalPath,
+      String replacePath,
+      List<ElementDefinition> elements,
+      ValidationResults results) async {
+    if (node.value is LiteralNode) {
+      return await _literalNode(node.value as LiteralNode, element, results);
+    } else if (node.value is ArrayNode) {
+      return await _arrayNode(node.value as ArrayNode, originalPath,
+          replacePath, elements, results);
+    } else {
+      throw Exception(
+          'Primitive element is not a Primitive or a List: ${node.value.runtimeType}');
+    }
   }
 
   String _cleanLocalPath(
@@ -203,25 +263,53 @@ class FhirValidatorUtils {
     return path.replaceAll(regex, '');
   }
 
-  bool _isPrimitive(ElementDefinition element) {
-    if (element.type == null || element.type!.isEmpty) return false;
-    final primitiveType = element.type!.first.code?.toString().toLowerCase();
-    return primitiveType != null && isPrimitiveType(primitiveType);
-  }
-
   Future<ValidationResults> _literalNode(LiteralNode node,
       ElementDefinition element, ValidationResults results) async {
-    final primitiveClass = element.type!.first.code!;
+    final primitiveClass = _findCode(element, node.path);
     final value = node.value;
     if (!isValueAValidPrimitive(primitiveClass.toString(), value)) {
       results.addResult(
-        node.path,
+        node,
         'Invalid value for primitive type: $primitiveClass',
         Severity.error,
-        line: node.loc?.start.line,
-        column: node.loc?.start.column,
       );
     }
     return results;
+  }
+
+  bool _isAResourceType(PropertyNode node, ElementDefinition? element) =>
+      element == null &&
+      node.value is LiteralNode &&
+      node.key?.value == 'resourceType' &&
+      R4ResourceType.typesAsStrings.contains((node.value as LiteralNode).value);
+
+  ElementDefinition? _polymorphicElement(
+      String path, List<ElementDefinition> elements) {
+    return elements.firstWhereOrNull((element) =>
+        element.path != null &&
+        element.path!.endsWith('[x]') &&
+        path.startsWith(element.path!.replaceFirst('[x]', '')));
+  }
+
+  String? _findCode(ElementDefinition element, String path) {
+    String? code;
+    if (element.type?.length == 1) {
+      return element.type?.first.code?.toString();
+    } else if ((element.type?.length ?? 0) > 1) {
+      if (element.path?.endsWith('[x]') ?? false) {
+        final type = path
+            .split('.')
+            .last
+            .replaceAll(
+                element.path?.split('.').last.replaceAll('[x]', '') ?? '', '')
+            .toLowerCase();
+        code = element.type!
+            .firstWhereOrNull((t) => t.code?.toString().toLowerCase() == type)
+            ?.code
+            ?.toString();
+        return code;
+      }
+    }
+    return null;
   }
 }
