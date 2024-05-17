@@ -33,7 +33,6 @@ class FhirValidatorUtils {
 
   Future<void> _traverseAst(Node node, String path,
       List<ElementDefinition> elements, ValidationResults results) async {
-    print('node path : ${node.path}');
     if (node is ObjectNode) {
       for (var property in node.children) {
         _traverseAst(property, path, elements, results);
@@ -47,6 +46,8 @@ class FhirValidatorUtils {
     } else if (node is PropertyNode) {
       if (node.value != null) {
         _traverseAst(node.value!, path, elements, results);
+      } else {
+        throw Exception('node.value is null');
       }
       for (final child in node.children) {
         throw Exception('child node ${child.runtimeType}');

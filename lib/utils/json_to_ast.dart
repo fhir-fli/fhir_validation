@@ -143,10 +143,10 @@ class Token {
 class Node {
   final String type;
   Location? loc;
-  String? path;
   Node? parent; // Add parent reference
+  String path = '';
 
-  Node(this.type, {this.loc, this.path, this.parent});
+  Node(this.type, {this.loc, this.parent});
 
   Node? getPropertyNode(String propertyName) {
     if (this is ObjectNode) {
@@ -196,12 +196,30 @@ class Node {
   }
 }
 
+String getNodePath(Node node) {
+  List<String> segments = [];
+  Node? current = node;
+
+  while (current != null) {
+    if (current is PropertyNode && current.key != null) {
+      segments.add(current.key!.value);
+    } else if (current.parent is ArrayNode) {
+      ArrayNode arrayNode = current.parent as ArrayNode;
+      int index = arrayNode.children.indexOf(current);
+      segments.add('[$index]');
+    }
+    current = current.parent;
+  }
+
+  segments = segments.reversed.toList();
+  return segments.join('.');
+}
+
 class ValueNode extends Node {
   final String value;
   final String? raw;
 
-  ValueNode(this.value, this.raw, {String? path, Node? parent})
-      : super('Identifier', path: path, parent: parent);
+  ValueNode(this.value, this.raw) : super('Identifier');
 
   @override
   bool operator ==(Object other) =>
@@ -215,8 +233,9 @@ class ValueNode extends Node {
 class ObjectNode extends Node {
   final List<PropertyNode> children = <PropertyNode>[];
 
-  ObjectNode({String? path, Node? parent})
-      : super('Object', path: path, parent: parent);
+  ObjectNode({String path = ''}) : super('Object') {
+    this.path = path;
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -248,8 +267,9 @@ bool _compareDynamicList(List? l, List? other) {
 class ArrayNode extends Node {
   final List<Node> children = <Node>[];
 
-  ArrayNode({String? path, Node? parent})
-      : super('Array', path: path, parent: parent);
+  ArrayNode({String path = ''}) : super('Array') {
+    this.path = path;
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -265,8 +285,9 @@ class PropertyNode extends Node {
   ValueNode? key;
   Node? value;
 
-  PropertyNode({String? path, Node? parent})
-      : super('Property', path: path, parent: parent);
+  PropertyNode({String path = ''}) : super('Property') {
+    this.path = path;
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -283,8 +304,9 @@ class LiteralNode extends Node {
   final dynamic value;
   final String? raw;
 
-  LiteralNode(this.value, this.raw, {String? path, Node? parent})
-      : super('Literal', path: path, parent: parent);
+  LiteralNode(this.value, this.raw, {String path = ''}) : super('Literal') {
+    this.path = path;
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -404,10 +426,9 @@ String unexpectedToken(String token, String source, int line, int column) {
 }
 
 ValueIndex<ObjectNode>? parseObject(String input, List<Token> tokenList,
-    int index, Settings settings, String currentPath) {
-  // object: LEFT_BRACE (property (COMMA property)*)? RIGHT_BRACE
+    int index, Settings settings, String path) {
   late Token startToken;
-  final object = ObjectNode(path: currentPath);
+  final object = ObjectNode(path: path);
   var state = _ObjectState._START_;
 
   while (index < tokenList.length) {
@@ -440,9 +461,8 @@ ValueIndex<ObjectNode>? parseObject(String input, List<Token> tokenList,
           return ValueIndex(object, index + 1);
         } else {
           final property =
-              parseProperty(input, tokenList, index, settings, currentPath);
+              parseProperty(input, tokenList, index, settings, '$path.');
           if (property != null) {
-            property.value.parent = object;
             object.children.add(property.value);
             state = _ObjectState.PROPERTY;
             index = property.index;
@@ -489,7 +509,7 @@ ValueIndex<ObjectNode>? parseObject(String input, List<Token> tokenList,
 
       case _ObjectState.COMMA:
         final property =
-            parseProperty(input, tokenList, index, settings, currentPath);
+            parseProperty(input, tokenList, index, settings, '$path.');
         if (property != null) {
           property.value.parent = object; // Set parent reference
           index = property.index;
@@ -512,10 +532,9 @@ ValueIndex<ObjectNode>? parseObject(String input, List<Token> tokenList,
 }
 
 ValueIndex<PropertyNode>? parseProperty(String input, List<Token> tokenList,
-    int index, Settings settings, String currentPath) {
-  // property: STRING COLON value
+    int index, Settings settings, String path) {
   late Token startToken;
-  final property = PropertyNode(path: currentPath);
+  final property = PropertyNode(path: path);
   var state = _PropertyState._START_;
 
   while (index < tokenList.length) {
@@ -528,11 +547,12 @@ ValueIndex<PropertyNode>? parseProperty(String input, List<Token> tokenList,
           if (value == null) {
             return null;
           }
-          final key = ValueNode(value, token.value, path: currentPath);
+          final key = ValueNode(value, token.value);
           key.loc = token.loc;
           key.parent = property; // Set parent reference
           startToken = token;
           property.key = key;
+          property.path = '$path${value}'; // Update path
           state = _PropertyState.KEY;
           index++;
         } else {
@@ -557,8 +577,8 @@ ValueIndex<PropertyNode>? parseProperty(String input, List<Token> tokenList,
         break;
 
       case _PropertyState.COLON:
-        final value = _parseValue(input, tokenList, index, settings,
-            '$currentPath.${property.key!.value}');
+        final value =
+            _parseValue(input, tokenList, index, settings, property.path);
         value.value.parent = property; // Set parent reference
         property.value = value.value;
         final src = settings.source ?? "";
@@ -577,14 +597,11 @@ ValueIndex<PropertyNode>? parseProperty(String input, List<Token> tokenList,
 }
 
 ValueIndex<ArrayNode>? parseArray(String input, List<Token> tokenList,
-    int index, Settings settings, String currentPath) {
-  // array: LEFT_BRACKET (value (COMMA value)*)? RIGHT_BRACKET
+    int index, Settings settings, String path) {
   late Token startToken;
-  final array = ArrayNode(path: currentPath);
+  final array = ArrayNode(path: path);
   var state = _ArrayState._START_;
   Token token;
-  int arrayIndex = 0; // Array index
-
   while (index < tokenList.length) {
     token = tokenList[index];
     switch (state) {
@@ -611,8 +628,8 @@ ValueIndex<ArrayNode>? parseArray(String input, List<Token> tokenList,
               src);
           return ValueIndex(array, index + 1);
         } else {
-          final value = _parseValue(
-              input, tokenList, index, settings, '$currentPath[$arrayIndex]');
+          final value = _parseValue(input, tokenList, index, settings,
+              '$path[${array.children.length}]');
           value.value.parent = array; // Set parent reference
           index = value.index;
           array.children.add(value.value);
@@ -635,7 +652,6 @@ ValueIndex<ArrayNode>? parseArray(String input, List<Token> tokenList,
         } else if (token.type == TokenType.COMMA) {
           state = _ArrayState.COMMA;
           index++;
-          arrayIndex++;
         } else {
           final src = settings.source ?? "";
           final msg = unexpectedToken(
@@ -649,8 +665,8 @@ ValueIndex<ArrayNode>? parseArray(String input, List<Token> tokenList,
         break;
 
       case _ArrayState.COMMA:
-        final value = _parseValue(
-            input, tokenList, index, settings, '$currentPath[$arrayIndex]');
+        final value = _parseValue(input, tokenList, index, settings,
+            '$path[${array.children.length}]');
         value.value.parent = array; // Set parent reference
         index = value.index;
         array.children.add(value.value);
@@ -662,8 +678,7 @@ ValueIndex<ArrayNode>? parseArray(String input, List<Token> tokenList,
 }
 
 ValueIndex<LiteralNode>? parseLiteral(String input, List<Token> tokenList,
-    int index, Settings settings, String currentPath) {
-  // literal: STRING | NUMBER | TRUE | FALSE | NULL
+    int index, Settings settings, String path) {
   final token = tokenList[index];
   var value;
 
@@ -695,20 +710,20 @@ ValueIndex<LiteralNode>? parseLiteral(String input, List<Token> tokenList,
       return null;
   }
 
-  final literal = LiteralNode(value, token.value, path: currentPath);
+  final literal = LiteralNode(value, token.value, path: path);
   literal.loc = token.loc;
   return ValueIndex(literal, index + 1);
 }
 
 typedef ValueIndex? _parserFun(String input, List<Token> tokenList, int index,
-    Settings settings, String currentPath);
+    Settings settings, String path);
 
 List<_parserFun> _parsersList = [parseLiteral, parseObject, parseArray];
 
 ValueIndex? _findValueIndex(String input, List<Token> tokenList, int index,
-    Settings settings, String currentPath) {
+    Settings settings, String path) {
   for (final parser in _parsersList) {
-    final valueIndex = parser(input, tokenList, index, settings, currentPath);
+    final valueIndex = parser(input, tokenList, index, settings, path);
     if (valueIndex != null) {
       return valueIndex;
     }
@@ -717,10 +732,9 @@ ValueIndex? _findValueIndex(String input, List<Token> tokenList, int index,
 }
 
 ValueIndex _parseValue(String input, List<Token> tokenList, int index,
-    Settings settings, String currentPath) {
-  // value: literal | object | array
+    Settings settings, String path) {
   final token = tokenList[index];
-  final value = _findValueIndex(input, tokenList, index, settings, currentPath);
+  final value = _findValueIndex(input, tokenList, index, settings, path);
 
   if (value != null) {
     return value;
@@ -736,14 +750,14 @@ ValueIndex _parseValue(String input, List<Token> tokenList, int index,
   }
 }
 
-Node parse(String input, Settings settings) {
+Node parse(String input, Settings settings, String path) {
   final tokenList = tokenize(input, settings);
 
   if (tokenList.isEmpty) {
     throw errorEof(input, tokenList, settings);
   }
 
-  final value = _parseValue(input, tokenList, 0, settings, '');
+  final value = _parseValue(input, tokenList, 0, settings, path);
 
   if (value.index == tokenList.length) {
     return value.value;
@@ -1075,7 +1089,7 @@ bool isExp(char) {
 }
 
 final Map<String, int> escapes = {
-  '"': 0, // Quotation mark
+  '"': 0, // Quotation mask
   '\\': 1, // Reverse solidus
   '/': 2, // Solidus
   'b': 3, // Backspace

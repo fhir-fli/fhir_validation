@@ -39,29 +39,22 @@ class FhirValidator {
     required Map<String, dynamic> resourceToValidate,
     StructureDefinition? structureDefinition,
   }) async {
-    // PrettyPrinting makes lines and columns correct
-    final String resourceString = prettyPrintJson(resourceToValidate);
-
-    // Parse the JSON with position information
-    final node = parse(resourceString, Settings());
-
-    // Extract the resourceType from the resource
-    final typeNode = node.getPropertyNode('resourceType');
-    if (typeNode == null ||
-        typeNode is! LiteralNode ||
-        typeNode.value == null) {
+    final type = resourceToValidate['resourceType'] as String?;
+    if (type == null) {
       results.addResult(
         '',
         '',
         'ResourceType is missing',
         Severity.error,
-        line: typeNode?.loc?.start.line,
-        column: typeNode?.loc?.start.column,
       );
       return _results();
     }
+    // PrettyPrinting makes lines and columns correct
+    final String resourceString = prettyPrintJson(resourceToValidate);
 
-    final type = typeNode.value as String;
+    // Parse the JSON with position information
+    final node = parse(resourceString, Settings(), type);
+
     final FhirValidatorUtils utils = FhirValidatorUtils();
 
     if (structureDefinition != null) {
