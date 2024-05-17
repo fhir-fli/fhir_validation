@@ -48,7 +48,7 @@ Future<void> main() async {
       }
       final result =
           await validator.validateFhirResource(resourceToValidate: resource);
-      print(result.prettyPrint());
+      // print(result.prettyPrint());
     });
   });
 }

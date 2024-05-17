@@ -1,5 +1,30 @@
 import 'package:fhir_primitives/fhir_primitives.dart';
 
+bool isPrimitiveType(String type) => ([
+      'base64binary',
+      'boolean',
+      'canonical',
+      'code',
+      'date',
+      'decimal',
+      'datetime',
+      'uri',
+      'url',
+      'id',
+      'instant',
+      'integer',
+      'integer64',
+      'markdown',
+      'xhtml',
+      'oid',
+      'positiveint',
+      'time',
+      'unsignedint',
+      'uuid',
+      'string',
+      'http://hl7.org/fhirpath/system.string'
+    ].contains(type.toLowerCase()));
+
 String fhirPrimitiveToDartPrimitive(String primitiveClass) {
   primitiveClass = primitiveClass.toLowerCase();
   switch (primitiveClass) {
