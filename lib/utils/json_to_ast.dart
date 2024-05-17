@@ -228,6 +228,11 @@ class ValueNode extends Node {
       loc == other.loc &&
       value == other.value &&
       raw == other.raw;
+
+  @override
+  String toString() {
+    return 'ValueNode($value, $raw)';
+  }
 }
 
 class ObjectNode extends Node {
@@ -315,6 +320,11 @@ class LiteralNode extends Node {
       loc == other.loc &&
       value == other.value &&
       raw == other.raw;
+
+  @override
+  String toString() {
+    return 'LiteralNode($value, $raw)';
+  }
 }
 
 class ValueIndex<T> {

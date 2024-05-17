@@ -15,7 +15,11 @@ class FhirValidatorUtils {
     // Extract elements from the main structure definition
     final elements = extractElements(structureDefinition);
 
-    return await validateStructure(node, type, elements, results);
+    if (node is! ObjectNode) {
+      throw Exception('Root node must be an ObjectNode');
+    }
+
+    return await _objectNode(node, type, type, elements, results);
   }
 
   List<ElementDefinition> extractElements(
@@ -23,35 +27,115 @@ class FhirValidatorUtils {
     return structureDefinition.snapshot?.element ?? [];
   }
 
-  Future<ValidationResults> validateStructure(Node node, String type,
-      List<ElementDefinition> elements, ValidationResults results) async {
-    // Validate the structure
-    if (node is! ObjectNode) {
-      throw Exception('Root node must be an ObjectNode');
+  Future<ValidationResults> _traverseAst(
+      Node node,
+      String originalPath,
+      String replacePath,
+      List<ElementDefinition> elements,
+      ValidationResults results) async {
+    print('traverse: ${node.path}');
+    if (node is ObjectNode) {
+      return _objectNode(node, originalPath, replacePath, elements, results);
+    } else if (node is ArrayNode) {
+      return _arrayNode(node, originalPath, replacePath, elements, results);
+    } else if (node is PropertyNode) {
+      return _propertyNode(node, originalPath, replacePath, elements, results);
+    } else {
+      throw Exception('Invalid node type: ${node.runtimeType} at ${node.path}');
     }
-    return await _objectNode(node, type, elements, results);
   }
 
-  Future<ValidationResults> _objectNode(ObjectNode node, String path,
-      List<ElementDefinition> elements, ValidationResults results) async {
+  Future<ValidationResults> _objectNode(
+      ObjectNode node,
+      String originalPath,
+      String replacePath,
+      List<ElementDefinition> elements,
+      ValidationResults results) async {
+    print('object: ${node.path}');
     for (var property in node.children) {
-      results = await _propertyNode(property, path, elements, results);
+      results = await _propertyNode(
+          property, originalPath, replacePath, elements, results);
     }
     return results;
   }
 
-  Future<ValidationResults> _propertyNode(PropertyNode node, String path,
-      List<ElementDefinition> elements, ValidationResults results) async {
+  Future<ValidationResults> _arrayNode(
+      ArrayNode node,
+      String originalPath,
+      String replacePath,
+      List<ElementDefinition> elements,
+      ValidationResults results) async {
+    print('array: ${node.path}');
+    for (final child in node.children) {
+      if (child is LiteralNode) {
+        final currentPath =
+            _cleanLocalPath(originalPath, replacePath, node.path);
+        final element =
+            elements.firstWhereOrNull((element) => element.path == currentPath);
+        if (element != null) {
+          results = await _literalNode(child, element, results);
+        } else {
+          results.addResult(
+            currentPath,
+            'Element not found in StructureDefinition - ${child.raw}',
+            Severity.error,
+            line: child.loc?.start.line,
+            column: child.loc?.start.column,
+          );
+        }
+      } else {
+        results = await _traverseAst(
+            child, originalPath, replacePath, elements, results);
+      }
+    }
+    return results;
+  }
+
+  Future<ValidationResults> _propertyNode(
+      PropertyNode node,
+      String originalPath,
+      String replacePath,
+      List<ElementDefinition> elements,
+      ValidationResults results) async {
+    print('property: ${node.path}');
     final currentPath = node.path;
-    final element = elements.firstWhereOrNull(
-        (element) => element.path == _cleanLocalPath(path, node.path));
+    final cleanLocalPath =
+        _cleanLocalPath(originalPath, replacePath, currentPath);
+    ElementDefinition? element =
+        elements.firstWhereOrNull((element) => element.path == cleanLocalPath);
+
+    // If the element is null, but the key is "resourceType" and the value is
+    // a valid resourceType, then this is a valid entry, although it's not
+    // in the structure maps
+    if (element == null) {
+      if (node.value is LiteralNode &&
+          node.key?.value == 'resourceType' &&
+          R4ResourceType.typesAsStrings
+              .contains((node.value as LiteralNode).value)) {
+        return results;
+      }
+    }
+    if (element == null) {
+      element = elements.firstWhereOrNull((element) =>
+          element.path != null &&
+          cleanLocalPath.startsWith(element.path!.replaceFirst('[x]', '')));
+    }
+
     if (element != null) {
       // We get the code from the StructureDefinition to determine if it's
       // a primitive type
-
-      final code = element.type?.first.code?.toString().toLowerCase();
+      final code = element.type?.first.code?.toString();
       if (code != null && _isPrimitive(element)) {
-        results = _validatePrimitive(node, element, results);
+        if (node.value is LiteralNode) {
+          results =
+              await _literalNode(node.value as LiteralNode, element, results);
+        } else if (node.value is ArrayNode) {
+          results = await _arrayNode(node.value as ArrayNode, originalPath,
+              replacePath, elements, results);
+        } else {
+          throw Exception(
+              'Primitive element is not a Primitive or a List: ${node.value.runtimeType} at $currentPath');
+        }
       } else if (code != null) {
         // If not, then it's not a primitive structure, and we will need
         // to find a separate StructureDefinition or Profile to validate
@@ -61,18 +145,28 @@ class FhirValidatorUtils {
             structureDefinitionMap != null
                 ? StructureDefinition.fromJson(structureDefinitionMap)
                 : null;
-        final newElements = extractElements(structureDefinition!);
+        if (structureDefinition == null) {
+          return results
+            ..addResult(
+              currentPath,
+              'No StructureDefinition or Profile found for Element type $code',
+              Severity.error,
+              line: node.key?.loc?.start.line,
+              column: node.key?.loc?.start.column,
+            );
+        }
+        final newElements = extractElements(structureDefinition);
         // If we find the StructureDefinition, we should traverse the AST
         if (newElements.isNotEmpty) {
           if (node.value != null) {
-            _traverseAst(node.value!, path, newElements, results);
+            results = await _traverseAst(
+                node.value!, currentPath, code, newElements, results);
           } else {
             throw Exception('node is ${node.runtimeType} with null node.value');
           }
         } else {
           results.addResult(
-            path,
-            node.key!.value,
+            currentPath,
             'No StructureDefinition or Profile found for Element type $code',
             Severity.error,
             line: node.key?.loc?.start.line,
@@ -80,32 +174,12 @@ class FhirValidatorUtils {
           );
         }
       }
-      // return results;
-      // if (node is ObjectNode) {
-      //   for (var property in node.children) {
-      //     print(property.path);
-      //     // results = await _perPropertyNode(property, element, path, results);
-      //     _traverseAst(property, path, elements, results);
-      //   }
-      // } else if (node is ArrayNode) {
-      //   for (var i = 0; i < node.children.length; i++) {
-      //     await _traverseAst(node.children[i], '$path[$i]', elements, results);
-      //   }
-      // } else if (node.value != null) {
-      //   _traverseAst(node.value!, path, elements, results);
-      // } else {
-      //   throw Exception('node is ${node.runtimeType} with null node.value');
-      // }
-      // for (final child in node.children) {
-      //   throw Exception('child node ${child.runtimeType}');
-      // }
     }
     // if we aren't able to find it in the elements, we should add it to the
     // ValidationResults as an error, and won't go looking for anything else
     else {
       return results
         ..addResult(
-          '',
           currentPath,
           'Element not found in StructureDefinition',
           Severity.error,
@@ -116,44 +190,9 @@ class FhirValidatorUtils {
     return results;
   }
 
-  // Future<ValidationResults> _perPropertyNode(PropertyNode node,
-  //     ElementDefinition element, String path, ValidationResults results) async {
-  //   // If it's a primitive type, we should validate the value
-  //   if (code != null && _isPrimitive(element)) {
-  //     results = _validatePrimitive(node, element, results);
-  //   } else if (code != null) {
-  //     // If not, then it's not a primitive structure, and we will need
-  //     // to find a separate StructureDefinition or Profile to validate
-  //     // the object.
-  //     final structureDefinitionMap = await getStructureDefinition(code);
-  //     final StructureDefinition? structureDefinition =
-  //         structureDefinitionMap != null
-  //             ? StructureDefinition.fromJson(structureDefinitionMap)
-  //             : null;
-  //     final newElements = extractElements(structureDefinition!);
-  //     // If we find the StructureDefinition, we should traverse the AST
-  //     if (newElements.isNotEmpty) {
-  //       if (node.value != null) {
-  //         _traverseAst(node.value!, path, newElements, results);
-  //       } else {
-  //         throw Exception('node is ${node.runtimeType} with null node.value');
-  //       }
-  //     } else {
-  //       results.addResult(
-  //         path,
-  //         node.key!.value,
-  //         'No StructureDefinition or Profile found for Element type $code',
-  //         Severity.error,
-  //         line: node.key?.loc?.start.line,
-  //         column: node.key?.loc?.start.column,
-  //       );
-  //     }
-  //   }
-  //   return results;
-  // }
-
-  String _cleanLocalPath(String parentPath, String childPath) {
-    childPath = childPath.replaceAll('$parentPath.', '');
+  String _cleanLocalPath(
+      String originalPath, String replacePath, String childPath) {
+    childPath = childPath.replaceAll(originalPath, replacePath);
     return _stripIndexes(childPath);
   }
 
@@ -170,64 +209,19 @@ class FhirValidatorUtils {
     return primitiveType != null && isPrimitiveType(primitiveType);
   }
 
-  ValidationResults _validatePrimitive(PropertyNode property,
-      ElementDefinition element, ValidationResults results) {
+  Future<ValidationResults> _literalNode(LiteralNode node,
+      ElementDefinition element, ValidationResults results) async {
     final primitiveClass = element.type!.first.code!;
-    final value = (property.value as LiteralNode?)?.value;
-
-    if (value != null &&
-        !isValueAValidPrimitive(primitiveClass.toString(), value)) {
+    final value = node.value;
+    if (!isValueAValidPrimitive(primitiveClass.toString(), value)) {
       results.addResult(
-        '',
-        property.key!.value,
+        node.path,
         'Invalid value for primitive type: $primitiveClass',
         Severity.error,
-        line: property.key?.loc?.start.line,
-        column: property.key?.loc?.start.column,
+        line: node.loc?.start.line,
+        column: node.loc?.start.column,
       );
     }
     return results;
-  }
-
-  Future<ElementDefinition?> _resolveSubObject(
-      PropertyNode property,
-      String path,
-      List<ElementDefinition> elements,
-      ValidationResults results) async {
-    for (var element in elements) {
-      if (element.path == path) continue;
-      if (element.type != null) {
-        for (var typeRef in element.type!) {
-          if (typeRef.profile != null) {
-            for (var profileUrl in typeRef.profile!) {
-              final profileElements =
-                  await _fetchProfileElements(profileUrl.toString());
-              if (profileElements != null) {
-                final matchingElement = profileElements.firstWhereOrNull(
-                    (profileElement) => profileElement.path == path);
-                if (matchingElement != null) return matchingElement;
-              }
-            }
-          }
-        }
-      }
-    }
-    return null;
-  }
-
-  Future<List<ElementDefinition>?> _fetchProfileElements(
-      String profileUrl) async {
-    // Implement logic to fetch and resolve the profile's StructureDefinition
-    // For example, you might fetch the profile from a server or cache
-    final structureDefinition = await _fetchStructureDefinition(profileUrl);
-    return structureDefinition?.snapshot?.element;
-  }
-
-  Future<StructureDefinition?> _fetchStructureDefinition(
-      String profileUrl) async {
-    // Implement the actual fetching logic here
-    // This is a placeholder for your implementation
-    // Example: return await myStructureDefinitionService.fetch(profileUrl);
-    return null;
   }
 }

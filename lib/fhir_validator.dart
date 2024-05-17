@@ -43,7 +43,6 @@ class FhirValidator {
     if (type == null) {
       results.addResult(
         '',
-        '',
         'ResourceType is missing',
         Severity.error,
       );
@@ -97,7 +96,6 @@ class FhirValidator {
       // If no structure definition is found, return an error
       results.addResult(
         '',
-        '',
         'No StructureDefinition was found for this Resource, which is a resourceType of: $type',
         Severity.error,
       );
@@ -135,7 +133,6 @@ class FhirValidator {
         } catch (e) {
           // If there is an error retrieving a profile, return an error message
           results.addResult(
-            '',
             '',
             'Failed to retrieve profile definition: $profile',
             Severity.error,

@@ -4,23 +4,14 @@ import 'package:fhir_validation/fhir_validation.dart';
 class ValidationResults {
   final List<ValidationDiagnostics> results = [];
 
-  void addResult(
-      String startPath, String currentPath, String newItem, Severity severity,
+  void addResult(String path, String newItem, Severity severity,
       {int? line, int? column}) {
-    final String path = _fullPathFromStartAndCurrent(startPath, currentPath);
     results.add(ValidationDiagnostics(path, newItem, severity,
         line: line, column: column));
   }
 
   void combineResults(ValidationResults other) {
     results.addAll(other.results);
-  }
-
-  String _fullPathFromStartAndCurrent(String startPath, String currentPath) {
-    var pathList = currentPath.split('.');
-    pathList = [startPath, ...pathList];
-    final path = pathList.join('.');
-    return path;
   }
 
   Map<String, dynamic> toJson() {

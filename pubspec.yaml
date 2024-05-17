@@ -45,4 +45,10 @@ dev_dependencies:
   import_sorter: ^4.6.0
   json_serializable: ^6.7.1
   riverpod_generator: ^2.4.0
-  test: ^1.25.2
+  flutter_test:
+    sdk: flutter
+  # test: ^1.25.2
+
+flutter:
+  assets:
+    - lib/test/test1/

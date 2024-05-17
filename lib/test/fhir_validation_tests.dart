@@ -1,11 +1,11 @@
+import 'package:flutter_test/flutter_test.dart';
 import 'package:fhir_r4/fhir_r4.dart';
 import 'package:fhir_validation/fhir_validator.dart';
-import 'package:test/test.dart';
 
 import 'package:fhir_validation/systems/resource_cache.dart';
 import 'test1/test.dart' as test1;
 
-Future<void> main() async {
+Future<void> fhirValidationTest() async {
   // Singleton cache instance
   final ResourceCache resourceCache = ResourceCache();
   void saveResource(Resource resource) {
@@ -39,16 +39,18 @@ Future<void> main() async {
   }
 
   final validator = FhirValidator();
-  group('FHIR Mapping', () {
-    test('Test1', () async {
-      final resource = await test1.resource();
-      final supportResources = await test1.supportResources();
-      for (final resource in supportResources) {
-        saveResource(resource);
-      }
-      final result =
-          await validator.validateFhirResource(resourceToValidate: resource);
-      // print(result.prettyPrint());
-    });
-  });
+  // group('FHIR Mapping', () {
+  // test('Test1', () async {
+  final resource = await test1.resource();
+  final supportResources = await test1.supportResources();
+  for (final resource in supportResources) {
+    saveResource(resource);
+  }
+  final result =
+      await validator.validateFhirResource(resourceToValidate: resource);
+  print(result.prettyPrint());
+  // });
+  // });
 }
+
+void test(String s, Future<Null> Function() param1) {}

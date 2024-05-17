@@ -68,6 +68,7 @@ String fhirPrimitiveToDartPrimitive(String primitiveClass) {
       return 'int';
     case 'uuid':
       return 'string';
+    case 'http://hl7.org/fhirpath/system.string':
     case 'string':
       return 'string';
     default:
@@ -119,6 +120,7 @@ bool isValueAValidPrimitive(String primitiveClass, dynamic value) {
         return FhirUnsignedInt.fromJson(value).isValid;
       case 'uuid':
         return FhirUuid.fromJson(value).isValid;
+      case 'http://hl7.org/fhirpath/system.string':
       case 'string':
         return value is String;
       default:
