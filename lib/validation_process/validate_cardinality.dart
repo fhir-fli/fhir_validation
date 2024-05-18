@@ -1,5 +1,4 @@
 import 'package:fhir_r4/fhir_r4.dart';
-
 import '../fhir_validation.dart';
 
 Future<ValidationResults> validateCardinality(

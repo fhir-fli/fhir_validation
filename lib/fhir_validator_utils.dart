@@ -1,6 +1,4 @@
 import 'package:fhir_r4/fhir_r4.dart';
-import 'package:fhir_validation/validation_process/validate_cardinality.dart';
-import 'package:fhir_validation/validation_process/validate_structure.dart';
 import 'fhir_validation.dart';
 
 class FhirValidatorUtils {
