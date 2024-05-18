@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:fhir_r4/fhir_r4.dart';
 import 'package:fhir_validation/fhir_validation.dart';
+import 'package:http/http.dart';
 
 import 'fhir_validator_utils.dart';
 
@@ -14,29 +15,32 @@ class FhirValidator {
     return newResults;
   }
 
-  Future<ValidationResults> validateFhirResource({
-    required Resource resourceToValidate,
-    StructureDefinition? structureDefinition,
-  }) {
+  Future<ValidationResults> validateFhirResource(
+      {required Resource resourceToValidate,
+      StructureDefinition? structureDefinition,
+      Client? client}) {
     return validateFhirMap(
       resourceToValidate: resourceToValidate.toJson(),
       structureDefinition: structureDefinition,
+      client: client,
     );
   }
 
-  Future<ValidationResults> validateFhirString({
-    required String resourceToValidate,
-    StructureDefinition? structureDefinition,
-  }) async {
+  Future<ValidationResults> validateFhirString(
+      {required String resourceToValidate,
+      StructureDefinition? structureDefinition,
+      required Client? client}) async {
     final resourceMap = json.decode(resourceToValidate) as Map<String, dynamic>;
     return validateFhirMap(
       resourceToValidate: resourceMap,
       structureDefinition: structureDefinition,
+      client: client,
     );
   }
 
   Future<ValidationResults> validateFhirMap({
     required Map<String, dynamic> resourceToValidate,
+    required Client? client,
     StructureDefinition? structureDefinition,
   }) async {
     final type = resourceToValidate['resourceType'] as String?;
@@ -71,7 +75,7 @@ class FhirValidator {
     }
 
     // Retrieve profiles for the resource
-    List<Map<String, dynamic>> profiles = await getProfiles(node);
+    List<Map<String, dynamic>> profiles = await getProfiles(node, client);
 
     if (profiles.isNotEmpty) {
       // If profiles are found, validate the resource against each profile
@@ -91,7 +95,7 @@ class FhirValidator {
 
     // So we don't have profiles or a StructureDefinition, so we just go with
     // a generic StructureDefinition
-    final definitionMap = await getStructureDefinition(type);
+    final definitionMap = await getStructureDefinition(type, client);
     if (definitionMap == null) {
       // If no structure definition is found, return an error
       results.addResult(
@@ -116,7 +120,8 @@ class FhirValidator {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getProfiles(Node node) async {
+  Future<List<Map<String, dynamic>>> getProfiles(
+      Node node, Client? client) async {
     // List to hold profile definitions retrieved
     List<Map<String, dynamic>> profileDefinitions = [];
     if (node is ObjectNode) {
@@ -126,7 +131,7 @@ class FhirValidator {
       // Retrieve profile definitions for each profile URL
       for (var profile in profiles) {
         try {
-          final profileDef = await getProfile(profile.value);
+          final profileDef = await getProfile(profile.value, client);
           if (profileDef != null) {
             profileDefinitions.add(profileDef);
           }

@@ -1,12 +1,13 @@
 import 'package:fhir_r4/fhir_r4.dart';
 import 'package:fhir_validation/fhir_validation.dart';
+import 'package:http/http.dart';
 
-Future<String> notInValueSetMessage(
-    dynamic value, FhirCanonical? valueSetCanonical, String message) async {
+Future<String> notInValueSetMessage(dynamic value,
+    FhirCanonical? valueSetCanonical, String message, Client? client) async {
   if (valueSetCanonical == null) {
     return "There was an error in our software evaluating the value ($value), please let us know.";
   }
-  final valueSetMap = await getValueSet(valueSetCanonical.toString());
+  final valueSetMap = await getValueSet(valueSetCanonical.toString(), client);
 
   if (valueSetMap != null) {
     final valueSet = ValueSet.fromJson(valueSetMap);

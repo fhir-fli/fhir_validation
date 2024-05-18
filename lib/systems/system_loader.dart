@@ -13,32 +13,38 @@ final ResourceCache resourceCache = ResourceCache();
 
 /// Retrieves a ValueSet from the given URL. Checks online first and if not
 /// found, then checks locally.
-Future<Map<String, dynamic>?> getValueSet(String url) async {
-  return await _getResource(url, 'ValueSet', valueSetMaps);
+Future<Map<String, dynamic>?> getValueSet(String url, Client? client) async {
+  return await _getResource(url, 'ValueSet', valueSetMaps, client);
 }
 
 /// Retrieves a CodeSystem from the given URL. Checks online first and if not
 /// found, then checks locally.
-Future<Map<String, dynamic>?> getCodeSystem(String url) async {
-  return await _getResource(url, 'CodeSystem', codeSystemMaps);
+Future<Map<String, dynamic>?> getCodeSystem(String url, Client? client) async {
+  return await _getResource(url, 'CodeSystem', codeSystemMaps, client);
 }
 
 /// Retrieves a StructureDefinition from the given URL. Checks online first
 /// and if not found, then checks locally.
-Future<Map<String, dynamic>?> getStructureDefinition(String url) async {
+Future<Map<String, dynamic>?> getStructureDefinition(
+    String url, Client? client) async {
   return await _getResource(
-      url, 'StructureDefinition', structureDefinitionMaps);
+      url, 'StructureDefinition', structureDefinitionMaps, client);
 }
 
 /// Retrieves a NamingSystem from the given URL. Checks online first and if
 /// not found, then checks locally.
-Future<Map<String, dynamic>?> getNamingSystem(String url) async {
-  return await _getResource(url, 'NamingSystem', namingSystemMaps);
+Future<Map<String, dynamic>?> getNamingSystem(
+    String url, Client? client) async {
+  return await _getResource(url, 'NamingSystem', namingSystemMaps, client);
 }
 
-Future<Map<String, dynamic>?> getProfile(String url) async {
+Future<Map<String, dynamic>?> getProfile(String url, Client? client) async {
   return await _getResource(
-      url, 'StructureDefinition', structureDefinitionMaps);
+      url, 'StructureDefinition', structureDefinitionMaps, client);
+}
+
+Future<Map<String, dynamic>?> getAnyResource(String url, Client? client) async {
+  return await _getResource(url, '', structureDefinitionMaps, client);
 }
 
 /// Utility method to retrieve a resource from the given URL, checking online
@@ -47,6 +53,7 @@ Future<Map<String, dynamic>?> _getResource(
   String url,
   String resourceType,
   Map<String, Map<String, dynamic>> localMap,
+  Client? client,
 ) async {
   // Check cache first
   final cachedResource = resourceCache.get(url);
@@ -57,25 +64,33 @@ Future<Map<String, dynamic>?> _getResource(
   final result = localMap[url];
   if (result != null) {
     resourceCache.set(url, result);
+    if (result['url'] != null) {
+      resourceCache.set(result['url'], result);
+    }
     return result;
   } else {
-    final Map<String, dynamic>? result = await _requestFromCanonical(url);
-    if (result != null && result['resourceType'] == resourceType) {
+    final Map<String, dynamic>? result =
+        await _requestFromCanonical(url, client);
+    if (result != null &&
+        (resourceType == '' || result['resourceType'] == resourceType)) {
       resourceCache.set(url, result);
+      if (result['url'] != null) {
+        resourceCache.set(result['url'], result);
+      }
       return result;
     }
   }
   // Normalize URL
   final normalizedUrl = url.contains('|') ? url.split('|')[0] : url;
   if (normalizedUrl != url) {
-    _getResource(normalizedUrl, resourceType, localMap);
+    _getResource(normalizedUrl, resourceType, localMap, client);
   }
   return null;
 }
 
 /// Function to request a resource from a canonical URL.
-Future<Map<String, dynamic>?> _requestFromCanonical(String canonical,
-    [Client? client]) async {
+Future<Map<String, dynamic>?> _requestFromCanonical(
+    String canonical, Client? client) async {
   try {
     final response = await (client?.get(Uri.parse(canonical),
             headers: {'Accept': 'application/fhir+json'}) ??

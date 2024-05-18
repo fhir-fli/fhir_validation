@@ -1,4 +1,5 @@
 import 'package:fhir_r4/fhir_r4.dart';
+import 'package:http/http.dart';
 import '../fhir_validation.dart';
 
 Future<ValidationResults> validateCardinality(
@@ -8,6 +9,7 @@ Future<ValidationResults> validateCardinality(
   String replacePath,
   List<ElementDefinition> elements,
   ValidationResults results,
+  Client? client,
 ) async {
   final currentPath = cleanLocalPath(originalPath, replacePath, node.path);
   final missingPaths = <String>[];
@@ -67,13 +69,19 @@ Future<ValidationResults> validateCardinality(
               final typeCode = findCode(element, foundNode.path);
               if (typeCode != null && !isPrimitiveType(typeCode)) {
                 final structureDefinition =
-                    await getStructureDefinition(typeCode);
+                    await getStructureDefinition(typeCode, client);
                 if (structureDefinition != null) {
                   final newElements = extractElements(
                       StructureDefinition.fromJson(structureDefinition));
                   if (foundNode is ObjectNode) {
-                    results = await validateCardinality(url, foundNode,
-                        originalPath, replacePath, newElements, results);
+                    results = await validateCardinality(
+                        url,
+                        foundNode,
+                        originalPath,
+                        replacePath,
+                        newElements,
+                        results,
+                        client);
                   }
                 }
               }

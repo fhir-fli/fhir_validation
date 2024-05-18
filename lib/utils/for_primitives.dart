@@ -25,6 +25,18 @@ bool isPrimitiveType(String type) => ([
       'http://hl7.org/fhirpath/system.string'
     ].contains(type.toLowerCase()));
 
+bool isComparablePrimitive(String type) => ([
+      'date',
+      'decimal',
+      'datetime',
+      'instant',
+      'integer',
+      'integer64',
+      'positiveint',
+      'time',
+      'unsignedint',
+    ].contains(type.toLowerCase()));
+
 String fhirPrimitiveToDartPrimitive(String primitiveClass) {
   primitiveClass = primitiveClass.toLowerCase();
   switch (primitiveClass) {
