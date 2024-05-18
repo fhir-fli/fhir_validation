@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:fhir_r4/fhir_r4.dart';
 import 'package:http/http.dart';
 import '../fhir_validation.dart';
@@ -22,7 +23,7 @@ Future<ValidationResults> validateCardinality(
       if (index == -1) {
         Node? foundNode = _findNodeRecursively(node, originalPath, replacePath,
                 cleanLocalPath(originalPath, replacePath, path)) ??
-            checkForPolymorphism(
+            _checkForPolymorphism(
                 node, element, currentPath, originalPath, replacePath);
 
         if (foundNode == null && path != originalPath) {
@@ -134,3 +135,19 @@ Node? _findNodeRecursively(
   // No matching node found
   return null;
 }
+
+Node? _checkForPolymorphism(ObjectNode node, ElementDefinition element,
+    String currentPath, String originalPath, String replacePath) {
+  if (_isAPolymorphicElement(element)) {
+    return node.children.firstWhereOrNull(
+      (child) =>
+          cleanLocalPath(originalPath, replacePath, child.path)
+              .replaceFirst('[x]', '') ==
+          currentPath,
+    );
+  }
+  return null;
+}
+
+bool _isAPolymorphicElement(ElementDefinition element) =>
+    element.path != null && element.path!.endsWith('[x]');

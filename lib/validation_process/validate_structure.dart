@@ -99,11 +99,11 @@ Future<ValidationResults> _propertyNode(
   ElementDefinition? element =
       elements.firstWhereOrNull((element) => element.path == cleanPath);
 
-  if (isAResourceType(node, element)) {
+  if (_isAResourceType(node, element)) {
     return results;
   }
 
-  element ??= polymorphicElement(cleanPath, elements);
+  element ??= _polymorphicElement(cleanPath, elements);
 
   if (element != null) {
     return await _withElement(
@@ -406,4 +406,18 @@ ValidationResults _checkDateTimeFormats(
     }
   }
   return results;
+}
+
+bool _isAResourceType(PropertyNode node, ElementDefinition? element) =>
+    element == null &&
+    node.value is LiteralNode &&
+    node.key?.value == 'resourceType' &&
+    R4ResourceType.typesAsStrings.contains((node.value as LiteralNode).value);
+
+ElementDefinition? _polymorphicElement(
+    String path, List<ElementDefinition> elements) {
+  return elements.firstWhereOrNull((element) =>
+      element.path != null &&
+      element.path!.endsWith('[x]') &&
+      path.startsWith(element.path!.replaceFirst('[x]', '')));
 }
