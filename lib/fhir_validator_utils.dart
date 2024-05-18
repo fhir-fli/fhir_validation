@@ -22,13 +22,14 @@ class FhirValidatorUtils {
     results = await _objectNode(node, type, type, elements, results);
 
     // Check for missing required fields
-    results =
-        await _checkMissingRequiredFields(node, type, type, elements, results);
+    results = await _checkMissingOrExtraFields(
+        _sdUrl(structureDefinition), node, type, type, elements, results);
 
     return results;
   }
 
-  Future<ValidationResults> _checkMissingRequiredFields(
+  Future<ValidationResults> _checkMissingOrExtraFields(
+    String? url,
     ObjectNode node,
     String originalPath,
     String replacePath,
@@ -36,21 +37,139 @@ class FhirValidatorUtils {
     ValidationResults results,
   ) async {
     final currentPath = _cleanLocalPath(originalPath, replacePath, node.path);
+    final missingPaths = <String>[];
+
     for (final element in elements) {
-      if (element.min != null || element.max != null) {
-        final path = element.path;
-        if (path != null) {
-          Node? foundNode = node.children
-              .firstWhereOrNull((child) => child.path == currentPath);
+      final path = element.path;
+      if (path != null) {
+        final index =
+            missingPaths.indexWhere((element) => path.startsWith(element));
+        if (index == -1) {
+          Node? foundNode = _findNodeRecursively(node, originalPath,
+              replacePath, _cleanLocalPath(originalPath, replacePath, path));
+
           if (foundNode == null && _isAPolymorphicElement(element)) {
             foundNode = node.children.firstWhereOrNull(
-                (child) => child.path.replaceFirst('[x]', '') == currentPath);
+              (child) =>
+                  _cleanLocalPath(originalPath, replacePath, child.path)
+                      .replaceFirst('[x]', '') ==
+                  currentPath,
+            );
+          }
+
+          if (foundNode == null && path != originalPath) {
+            missingPaths.add(path);
+          }
+
+          // Check for missing required elements
+          if (element.min != null && element.min! > 0 && foundNode == null) {
+            results.addMissingResult(
+              path,
+              '$path: minimum required = ${element.min}, but only found 0 '
+              '${url == null ? '' : '(from $url)'}',
+              Severity.error,
+            );
+          } else if (foundNode != null) {
+            // Check for too many occurrences of an element
+            if (element.max != null && element.max != '*') {
+              final max = int.tryParse(element.max!);
+              if (max != null &&
+                  foundNode is ArrayNode &&
+                  foundNode.children.length > max) {
+                results.addResult(
+                  node,
+                  'Too many elements for: $path. Maximum allowed is $max.',
+                  Severity.error,
+                );
+              }
+            }
+
+            // Check if the required element is populated
+            if (element.min != null && element.min! > 0) {
+              if (foundNode is LiteralNode && foundNode.value == null) {
+                results.addResult(
+                  node,
+                  'Required element is not populated: $path',
+                  Severity.error,
+                );
+              } else if (foundNode is ArrayNode && foundNode.children.isEmpty) {
+                results.addResult(
+                  node,
+                  'Required element is not populated: $path',
+                  Severity.error,
+                );
+              } else if (foundNode is PropertyNode && foundNode.key == null) {
+                results.addResult(
+                  node,
+                  'Required element is not populated: $path',
+                  Severity.error,
+                );
+              }
+            } else {
+              // Recursively check nested elements if not a primitive type
+              if (element.type != null && element.type!.isNotEmpty) {
+                final typeCode = _findCode(element, foundNode.path);
+                if (typeCode != null && !isPrimitiveType(typeCode)) {
+                  final structureDefinition =
+                      await getStructureDefinition(typeCode);
+                  if (structureDefinition != null) {
+                    final newElements = extractElements(
+                        StructureDefinition.fromJson(structureDefinition));
+                    if (foundNode is ObjectNode) {
+                      results = await _checkMissingOrExtraFields(url, foundNode,
+                          originalPath, replacePath, newElements, results);
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
     }
 
     return results;
+  }
+
+  Node? _findNodeRecursively(
+      Node node, String originalPath, String replacePath, String targetPath) {
+    final cleanedNodePath =
+        _cleanLocalPath(originalPath, replacePath, node.path);
+
+    // Check if the current node matches the target path
+    if (cleanedNodePath == targetPath) {
+      return node;
+    }
+
+    // If the node has children, recursively search them
+    if (node is ObjectNode) {
+      for (var property in node.children) {
+        final foundNode = _findNodeRecursively(
+            property, originalPath, replacePath, targetPath);
+        if (foundNode != null) {
+          return foundNode;
+        }
+      }
+    } else if (node is ArrayNode) {
+      for (var child in node.children) {
+        final foundNode =
+            _findNodeRecursively(child, originalPath, replacePath, targetPath);
+        if (foundNode != null) {
+          return foundNode;
+        }
+      }
+    } else if (node is PropertyNode) {
+      if (node.value != null) {
+        final foundNode = _findNodeRecursively(
+            node.value!, originalPath, replacePath, targetPath);
+        if (foundNode != null) {
+          return foundNode;
+        }
+      }
+    }
+
+    // No matching node found
+    return null;
   }
 
   List<ElementDefinition> extractElements(
@@ -341,5 +460,13 @@ class FhirValidatorUtils {
   String _stripIndexes(String path) {
     RegExp regex = RegExp(r'\[\d+\]');
     return path.replaceAll(regex, '');
+  }
+
+  String? _sdUrl(StructureDefinition structureDefinition) {
+    String? sdUrl = structureDefinition.url?.toString();
+    if (sdUrl != null && structureDefinition.version != null) {
+      sdUrl += '|${structureDefinition.version}';
+    }
+    return sdUrl;
   }
 }

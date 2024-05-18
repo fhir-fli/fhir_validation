@@ -3,51 +3,31 @@ import 'package:fhir_validation/fhir_validation.dart';
 
 class ValidationResults {
   final List<ValidationDiagnostics> results = [];
+  final List<ValidationDiagnostics> missingResults = [];
 
   void addResult(Node? node, String newItem, Severity severity) {
-    int? line;
-    int? column;
-    switch (node) {
-      case ObjectNode _:
-        {
-          line = node.loc?.start.line;
-          column = node.loc?.start.column;
-        }
-        break;
-      case ArrayNode _:
-        {
-          line = node.loc?.start.line;
-          column = node.loc?.start.column;
-        }
-        break;
-      case PropertyNode _:
-        {
-          line = node.key?.loc?.start.line ?? node.loc?.start.line;
-          column = node.key?.loc?.start.column ?? node.loc?.start.column;
-        }
-        break;
-      case LiteralNode _:
-        {
-          line = node.loc?.start.line;
-          column = node.loc?.start.column;
-        }
-        break;
-      case ValueNode _:
-        {
-          line = node.loc?.start.line;
-          column = node.loc?.start.column;
-        }
-        break;
+    results.add(ValidationDiagnostics.create(node, newItem, severity));
+  }
+
+  void addMissingResult(String path, String newItem, Severity severity) {
+    final index =
+        missingResults.indexWhere((element) => path.startsWith(element.path));
+    if (index == -1) {
+      missingResults.add(ValidationDiagnostics(path, newItem, severity));
     }
-    results.add(ValidationDiagnostics(node?.path ?? '', newItem, severity,
-        line: line, column: column));
   }
 
   void combineResults(ValidationResults other) {
     results.addAll(other.results);
+    missingResults.addAll(other.missingResults);
+  }
+
+  void _joinResults() {
+    results.addAll(_cleanMissingResults());
   }
 
   Map<String, dynamic> toJson() {
+    _joinResults();
     final error = results
         .where((element) => element.severity == Severity.error)
         .map((e) => e.toJson())
@@ -70,6 +50,19 @@ class ValidationResults {
   @override
   String toString() {
     return toJson().toString();
+  }
+
+  List<ValidationDiagnostics> _cleanMissingResults() {
+    missingResults.sort((a, b) => a.path.length.compareTo(b.path.length));
+    final cleanedResults = <ValidationDiagnostics>[];
+    for (final result in missingResults) {
+      final index = cleanedResults
+          .indexWhere((element) => result.path.startsWith(element.path));
+      if (index == -1) {
+        cleanedResults.add(result);
+      }
+    }
+    return cleanedResults;
   }
 
   OperationOutcomeIssue _makeOperationOutcomeIssue(ValidationDiagnostics e) =>
@@ -104,6 +97,7 @@ class ValidationResults {
           ]);
 
   OperationOutcome toOperationOutcome() {
+    _joinResults();
     final error =
         results.where((element) => element.severity == Severity.error).toList();
     final warning = results
@@ -127,8 +121,11 @@ class ValidationResults {
 
   ValidationResults copyWith({
     List<ValidationDiagnostics>? results,
+    List<ValidationDiagnostics>? missingResults,
   }) {
-    return ValidationResults()..results.addAll(results ?? this.results);
+    return ValidationResults()
+      ..results.addAll(results ?? this.results)
+      ..missingResults.addAll(missingResults ?? this.missingResults);
   }
 }
 
@@ -176,6 +173,49 @@ class ValidationDiagnostics {
       line: line ?? this.line,
       column: column ?? this.column,
     );
+  }
+
+  factory ValidationDiagnostics.create(
+    Node? node,
+    String newItem,
+    Severity severity,
+  ) {
+    int? line;
+    int? column;
+    switch (node) {
+      case ObjectNode _:
+        {
+          line = node.loc?.start.line;
+          column = node.loc?.start.column;
+        }
+        break;
+      case ArrayNode _:
+        {
+          line = node.loc?.start.line;
+          column = node.loc?.start.column;
+        }
+        break;
+      case PropertyNode _:
+        {
+          line = node.key?.loc?.start.line ?? node.loc?.start.line;
+          column = node.key?.loc?.start.column ?? node.loc?.start.column;
+        }
+        break;
+      case LiteralNode _:
+        {
+          line = node.loc?.start.line;
+          column = node.loc?.start.column;
+        }
+        break;
+      case ValueNode _:
+        {
+          line = node.loc?.start.line;
+          column = node.loc?.start.column;
+        }
+        break;
+    }
+    return ValidationDiagnostics(node?.path ?? '', newItem, severity,
+        line: line, column: column);
   }
 }
 
