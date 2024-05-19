@@ -5,46 +5,55 @@ import '../fhir_validation.dart';
 
 Future<ValidationResults> validateInvariants({
   required Node node,
-  required List<ElementDefinition> elements,
+  required ElementDefinition element,
   required ValidationResults results,
   String? url,
   Client? client,
 }) async {
-  for (final ElementDefinition element in elements) {
-    if (element.constraint != null) {
-      for (final ElementDefinitionConstraint constraint
-          in element.constraint!) {
-        if (!await evaluateConstraint(constraint, node)) {
-          results.addResult(
-            node,
-            withUrlIfExists('Invariant violation: ${constraint.human}', url),
-            Severity.information,
-          );
+  if (element.constraint != null) {
+    final dynamic context = _getContext(node);
+    for (final ElementDefinitionConstraint constraint in element.constraint!) {
+      if (constraint.expression != null) {
+        // print('${node.path} ${constraint.expression}');
+        if (!(node is PropertyNode &&
+            node.value is ArrayNode &&
+            constraint.expression == 'extension.exists() != value.exists()')) {
+          if (!await evaluateConstraint(context, constraint.expression!)) {
+            results.addResult(
+              node,
+              withUrlIfExists('Invariant violation: ${constraint.human}', url),
+              Severity.information,
+            );
+          }
         }
+      } else {
+        results.addResult(
+          node,
+          withUrlIfExists('Invariant violation: ${constraint.human}', url),
+          Severity.information,
+        );
       }
     }
   }
   return results;
 }
 
-Future<bool> evaluateConstraint(
-  ElementDefinitionConstraint constraint,
-  Node node,
-) async {
-  // Extract FHIRPath expression
-  final String? expression = constraint.expression;
-
-  if (expression == null) {
-    return false;
-  }
-
-  if (node is ObjectNode) {
-    print(node.path);
-  }
-
+dynamic _getContext(Node node) {
   // Convert Node to Map to use as context
-  final dynamic context = nodeToMap(node);
+  dynamic context = nodeToMap(node);
 
+  if (node is PropertyNode) {
+    final String finalPath = node.path.split('.').last;
+    context = context[finalPath];
+  }
+
+  return context;
+}
+
+Future<bool> evaluateConstraint(
+  dynamic context,
+  String expression,
+) async {
   // Evaluate the FHIRPath expression using the context
   final List<dynamic> result = walkFhirPath(
     context: context,
@@ -56,17 +65,17 @@ Future<bool> evaluateConstraint(
 }
 
 dynamic nodeToMap(Node node) {
-  if (node is ObjectNode) {
+  if (node is LiteralNode) {
+    return node.value;
+  } else if (node is ObjectNode) {
     return _objectNodeToMap(node);
   } else if (node is ArrayNode) {
-    return <String, dynamic>{'value': _arrayNodeToList(node)};
+    return _arrayNodeToList(node);
   } else if (node is PropertyNode) {
     if (node.key?.value == null) {
       throw Exception('PropertyNode key is null');
     }
     return <String, dynamic>{node.key!.value: nodeToMap(node.value!)};
-  } else if (node is LiteralNode) {
-    return <String, dynamic>{'value': node.value};
   }
   throw Exception('Unknown node type: ${node.runtimeType}');
 }

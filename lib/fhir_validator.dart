@@ -161,14 +161,6 @@ class FhirValidator {
     // Validate Extensions
     results = await validateExtensions(node, elements, results, client);
 
-    results = await validateInvariants(
-      url: url,
-      node: node,
-      elements: elements,
-      results: results,
-      client: client,
-    );
-
     if (type == 'QuestionnaireResponse' &&
         mapToValidate['resourceType'] == 'QuestionnaireResponse') {
       final QuestionnaireResponse questionnaireResponse =

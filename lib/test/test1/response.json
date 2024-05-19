@@ -16,25 +16,6 @@
       "location": [
         "Patient.identifier"
       ]
-    },
-    {
-      "extension": [
-        {
-          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line",
-          "valueInteger": 1
-        },
-        {
-          "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col",
-          "valueInteger": 1
-        }
-      ],
-      "severity": "information",
-      "code": "processing",
-      "diagnostics": "Invariant violation: At least name.given and/or name.family are present or, if neither is available, the Data Absent Reason Extension is present. (from http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient|6.1.0)",
-      "location": [
-        "Patient",
-        "Line[1] Column[1]"
-      ]
     }
   ]
 }

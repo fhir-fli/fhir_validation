@@ -53,6 +53,19 @@ Future<ValidationResults> _objectNode(
     results = await _propertyNode(
         url, property, originalPath, replacePath, elements, results, client);
   }
+
+  final ElementDefinition? element =
+      _findElementDefinitionFromNode(originalPath, replacePath, node, elements);
+  if (element != null) {
+    results = await validateInvariants(
+      url: url,
+      node: node,
+      element: element,
+      results: results,
+      client: client,
+    );
+  }
+
   return results;
 }
 
@@ -67,10 +80,8 @@ Future<ValidationResults> _arrayNode(
 ) async {
   for (final Node child in node.children) {
     if (child is LiteralNode) {
-      final String cleanPath =
-          cleanLocalPath(originalPath, replacePath, node.path);
-      final ElementDefinition? element = elements.firstWhereOrNull(
-          (ElementDefinition element) => element.path == cleanPath);
+      final ElementDefinition? element = _findElementDefinitionFromNode(
+          originalPath, replacePath, child, elements);
       if (element != null) {
         results = await _literalNode(url, child, element, results, client);
       } else {
@@ -86,6 +97,7 @@ Future<ValidationResults> _arrayNode(
           url, child, originalPath, replacePath, elements, results, client);
     }
   }
+
   return results;
 }
 
@@ -98,24 +110,32 @@ Future<ValidationResults> _propertyNode(
   ValidationResults results,
   Client? client,
 ) async {
-  final String cleanPath = cleanLocalPath(originalPath, replacePath, node.path);
-  ElementDefinition? element = _findElementDefinition(cleanPath, elements);
+  ElementDefinition? element =
+      _findElementDefinitionFromNode(originalPath, replacePath, node, elements);
 
   if (_isAResourceType(node, element)) {
     return results;
   }
 
   if (element != null) {
-    return await _withElement(url, node, element, originalPath, replacePath,
+    results = await _withElement(url, node, element, originalPath, replacePath,
         elements, results, client);
+    results = await validateInvariants(
+      url: url,
+      node: node,
+      element: element,
+      results: results,
+      client: client,
+    );
   } else {
     results.addResult(
       node,
       withUrlIfExists('Element not found in StructureDefinition', url),
       Severity.error,
     );
-    return results;
   }
+
+  return results;
 }
 
 Future<ValidationResults> _withElement(
@@ -249,15 +269,16 @@ Future<ValidationResults> _codeIsPrimitiveType(
   Client? client,
 ) async {
   if (node.value is LiteralNode) {
-    return await _literalNode(
+    results = await _literalNode(
         url, node.value as LiteralNode, element, results, client);
   } else if (node.value is ArrayNode) {
-    return await _arrayNode(url, node.value as ArrayNode, originalPath,
+    results = await _arrayNode(url, node.value as ArrayNode, originalPath,
         replacePath, elements, results, client);
   } else {
     throw Exception(
         'Primitive element is not a Primitive or a List: ${node.value.runtimeType}');
   }
+  return results;
 }
 
 Future<ValidationResults> _literalNode(
@@ -488,9 +509,10 @@ ElementDefinition? _polymorphicElement(
       path.startsWith(element.path!.replaceFirst('[x]', '')));
 }
 
-ElementDefinition? _findElementDefinition(
-    String path, List<ElementDefinition> elements) {
+ElementDefinition? _findElementDefinitionFromNode(String originalPath,
+    String replacePath, Node node, List<ElementDefinition> elements) {
+  final String cleanPath = cleanLocalPath(originalPath, replacePath, node.path);
   return elements.firstWhereOrNull(
-          (ElementDefinition element) => element.path == path) ??
-      _polymorphicElement(path, elements);
+          (ElementDefinition element) => element.path == cleanPath) ??
+      _polymorphicElement(cleanPath, elements);
 }
