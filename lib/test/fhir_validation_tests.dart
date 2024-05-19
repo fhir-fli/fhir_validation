@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fhir_r4/fhir_r4.dart';
-import 'package:fhir_validation/fhir_validator.dart';
 
 import 'package:fhir_validation/systems/resource_cache.dart';
+import '../fhir_validation.dart';
 import 'test1/test.dart' as test1;
 
 Future<void> fhirValidationTest() async {
@@ -26,9 +26,9 @@ Future<void> fhirValidationTest() async {
         }
         break;
       case NamingSystem _:
-        for (final uniqueId in resource.uniqueId) {
-          final value = uniqueId.value ?? '';
-          final type = uniqueId.type?.value?.toLowerCase();
+        for (final NamingSystemUniqueId uniqueId in resource.uniqueId) {
+          final String value = uniqueId.value ?? '';
+          final String? type = uniqueId.type?.value?.toLowerCase();
           if (type == 'oid' && !resourceCache.containsKey(value)) {
             resourceCache.set(value, resource.toJson());
           } else if (type == 'uri' && !resourceCache.containsKey(value)) {
@@ -38,15 +38,15 @@ Future<void> fhirValidationTest() async {
     }
   }
 
-  final validator = FhirValidator();
+  final FhirValidator validator = FhirValidator();
   // group('FHIR Mapping', () {
   // test('Test1', () async {
-  final resource = await test1.resource();
-  final supportResources = await test1.supportResources();
-  for (final resource in supportResources) {
+  final Resource resource = await test1.resource();
+  final List<Resource> supportResources = await test1.supportResources();
+  for (final Resource resource in supportResources) {
     saveResource(resource);
   }
-  final result =
+  final ValidationResults result =
       await validator.validateFhirResource(resourceToValidate: resource);
   print(result.prettyPrint());
   // });

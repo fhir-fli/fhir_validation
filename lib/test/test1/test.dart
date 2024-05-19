@@ -4,7 +4,7 @@ import 'package:fhir_r4/fhir_r4.dart';
 
 import 'package:flutter/services.dart' show rootBundle;
 
-const path = 'lib/test/test1';
+const String path = 'lib/test/test1';
 
 Future<String> getFileData(String path) async {
   return await rootBundle.loadString(path);
@@ -38,7 +38,7 @@ Future<Resource> response() async =>
     Resource.fromJsonString(await getFileData('$path/response.json'));
 // Resource.fromJsonString(await File('$path/response.json').readAsString());
 
-Future<List<Resource>> supportResources() async => [
+Future<List<Resource>> supportResources() async => <Resource>[
       await supportResource1(),
       await supportResource2(),
       await supportResource3(),

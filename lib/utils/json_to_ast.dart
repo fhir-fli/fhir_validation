@@ -25,24 +25,27 @@ class JSONASTException implements Exception {
 
 String codeErrorFragment(String input, int linePos, int columnPos,
     [Settings? settings]) {
-  final splitter = RegExp(r"\r\n?|\n|\f");
-  final lines = input.split(splitter);
+  final RegExp splitter = RegExp(r"\r\n?|\n|\f");
+  final List<String> lines = input.split(splitter);
   settings ??= Settings();
-  final startLinePos = max(1, linePos - settings.extraLines) - 1;
-  final endLinePos = min(linePos + settings.extraLines, lines.length);
-  final maxNumLength = endLinePos.toString().length;
-  final prevLines =
+  final int startLinePos = max(1, linePos - settings.extraLines) - 1;
+  final int endLinePos = min(linePos + settings.extraLines, lines.length);
+  final int maxNumLength = endLinePos.toString().length;
+  final String prevLines =
       printLines(lines, startLinePos, linePos, maxNumLength, settings);
-  final targetLineBeforeCursor = printLine(
+  final String targetLineBeforeCursor = printLine(
       lines[linePos - 1].substring(0, columnPos - 1),
       linePos,
       maxNumLength,
       settings);
-  final cursorLine = repeatString(' ', targetLineBeforeCursor.length) + '^';
-  final nextLines =
+  final String cursorLine =
+      repeatString(' ', targetLineBeforeCursor.length) + '^';
+  final String nextLines =
       printLines(lines, linePos, endLinePos, maxNumLength, settings);
 
-  return [prevLines, cursorLine, nextLines].where((c) => c != 0).join('\n');
+  return <String>[prevLines, cursorLine, nextLines]
+      .where((String c) => c != 0)
+      .join('\n');
 }
 
 class Loc {
@@ -88,14 +91,14 @@ class Location {
   static Location create(int startLine, int startColumn, int startOffset,
       int endLine, int endColumn, int endOffset,
       [String source = ""]) {
-    final startSegment = Segment(startLine, startColumn, startOffset);
-    final endSegment = Segment(endLine, endColumn, endOffset);
+    final Segment startSegment = Segment(startLine, startColumn, startOffset);
+    final Segment endSegment = Segment(endLine, endColumn, endOffset);
     return Location(startSegment, endSegment, source);
   }
 
   @override
   String toString() {
-    final src = source.isNotEmpty ? '($source)' : '';
+    final String src = source.isNotEmpty ? '($source)' : '';
     return 'Location($start, $end$src)';
   }
 }
@@ -114,7 +117,7 @@ enum TokenType {
   NULL // null
 }
 
-final Map<String, TokenType> punctuatorTokensMap = {
+final Map<String, TokenType> punctuatorTokensMap = <String, TokenType>{
   '{': TokenType.LEFT_BRACE,
   '}': TokenType.RIGHT_BRACE,
   '[': TokenType.LEFT_BRACKET,
@@ -123,7 +126,7 @@ final Map<String, TokenType> punctuatorTokensMap = {
   ',': TokenType.COMMA
 };
 
-final Map<String, TokenType> keywordTokensMap = {
+final Map<String, TokenType> keywordTokensMap = <String, TokenType>{
   'true': TokenType.TRUE,
   'false': TokenType.FALSE,
   'null': TokenType.NULL
@@ -150,7 +153,7 @@ class Node {
 
   Node? getPropertyNode(String propertyName) {
     if (this is ObjectNode) {
-      for (var property in (this as ObjectNode).children) {
+      for (PropertyNode property in (this as ObjectNode).children) {
         if (property.key?.value == propertyName) {
           return property.value;
         }
@@ -160,16 +163,16 @@ class Node {
   }
 
   List<LiteralNode> extractProfileNodes() {
-    List<LiteralNode> profileNodes = [];
+    List<LiteralNode> profileNodes = <LiteralNode>[];
 
     void traverse(Node node, String path) {
       if (node is ObjectNode) {
-        for (var property in node.children) {
-          final newPath = path.isEmpty
+        for (PropertyNode property in node.children) {
+          final String? newPath = path.isEmpty
               ? property.key?.value
               : '$path.${property.key?.value}';
           if (newPath == 'meta.profile' && property.value is ArrayNode) {
-            for (var item in (property.value as ArrayNode).children) {
+            for (Node item in (property.value as ArrayNode).children) {
               if (item is LiteralNode) {
                 profileNodes.add(item);
               }
@@ -179,8 +182,8 @@ class Node {
           }
         }
       } else if (node is ArrayNode) {
-        for (var i = 0; i < node.children.length; i++) {
-          final newPath = '$path[$i]';
+        for (int i = 0; i < node.children.length; i++) {
+          final String newPath = '$path[$i]';
           traverse(node.children[i], newPath);
         }
       }
@@ -197,7 +200,7 @@ class Node {
 }
 
 String getNodePath(Node node) {
-  List<String> segments = [];
+  List<String> segments = <String>[];
   Node? current = node;
 
   while (current != null) {
@@ -250,15 +253,15 @@ class ObjectNode extends Node {
       _compareDynamicList(children, other.children);
 }
 
-bool _compareDynamicList(List? l, List? other) {
+bool _compareDynamicList(List<dynamic>? l, List<dynamic>? other) {
   if (l != null && other != null) {
-    final len = l.length;
+    final int len = l.length;
     if (len != other.length) {
       return false;
     }
     for (int i = 0; i < len; i++) {
-      final el = l.elementAt(i);
-      final otherEl = other.elementAt(i);
+      final dynamic el = l.elementAt(i);
+      final dynamic otherEl = other.elementAt(i);
       if (el != otherEl) {
         return false;
       }
@@ -373,7 +376,7 @@ String repeatString(String str, int n) {
   } else if (n == 1) {
     return str;
   }
-  final strBuf = StringBuffer();
+  final StringBuffer strBuf = StringBuffer();
   for (int i = 0; i < n; i++) {
     strBuf.write(str);
   }
@@ -382,9 +385,9 @@ String repeatString(String str, int n) {
 
 String printLine(
     String line, int position, int maxNumLength, Settings settings) {
-  final n = position.toString();
-  final formattedNum = n.padLeft(maxNumLength);
-  final tabReplacement = repeatString(' ', settings.tabSize);
+  final String n = position.toString();
+  final String formattedNum = n.padLeft(maxNumLength);
+  final String tabReplacement = repeatString(' ', settings.tabSize);
   return formattedNum + ' | ' + line.replaceAll('\t', tabReplacement);
 }
 
@@ -393,8 +396,8 @@ String printLines(List<String> lines, int start, int end, int maxNumLength,
   return lines
       .sublist(start, end)
       .asMap()
-      .map((i, line) =>
-          MapEntry(i, printLine(line, start + i + 1, maxNumLength, settings)))
+      .map((int i, String line) => MapEntry<int, String>(
+          i, printLine(line, start + i + 1, maxNumLength, settings)))
       .values
       .join('\n');
 }
@@ -403,9 +406,10 @@ String substring(String str, int start, [int? end]) {
   if (end == null) {
     end = start + 1;
   }
-  final splitter = GraphemeSplitter();
-  final iterator = splitter.iterateGraphemes(str.substring(start));
-  final strBuffer = StringBuffer();
+  final GraphemeSplitter splitter = GraphemeSplitter();
+  final Iterable<String> iterator =
+      splitter.iterateGraphemes(str.substring(start));
+  final StringBuffer strBuffer = StringBuffer();
   for (int i = 0; i < end - start; i++) {
     strBuffer.write(iterator.elementAt(i));
   }
@@ -413,36 +417,36 @@ String substring(String str, int start, [int? end]) {
 }
 
 String safeSubstring(String str, int start, int end) {
-  final len = str.length;
+  final int len = str.length;
   if (len > start) {
-    final lastIndex = min(len, end);
+    final int lastIndex = min(len, end);
     return str.substring(start, lastIndex);
   }
   return '';
 }
 
 String unexpectedSymbol(String symbol, String source, int line, int column) {
-  final sourceOrEmpty = source != "" ? '$source:' : '';
-  final positionStr = '$sourceOrEmpty${line}:$column';
+  final String sourceOrEmpty = source != "" ? '$source:' : '';
+  final String positionStr = '$sourceOrEmpty${line}:$column';
   return 'Unexpected symbol <$symbol> at $positionStr';
 }
 
 String unexpectedEnd() => 'Unexpected end of input';
 
 String unexpectedToken(String token, String source, int line, int column) {
-  final sourceOrEmpty = source != "" ? '$source:' : '';
-  final positionStr = '$sourceOrEmpty${line}:$column';
+  final String sourceOrEmpty = source != "" ? '$source:' : '';
+  final String positionStr = '$sourceOrEmpty${line}:$column';
   return 'Unexpected token <$token> at $positionStr';
 }
 
 ValueIndex<ObjectNode>? parseObject(String input, List<Token> tokenList,
     int index, Settings settings, String path) {
   late Token startToken;
-  final object = ObjectNode(path: path);
-  var state = _ObjectState._START_;
+  final ObjectNode object = ObjectNode(path: path);
+  _ObjectState state = _ObjectState._START_;
 
   while (index < tokenList.length) {
-    final token = tokenList[index];
+    final Token token = tokenList[index];
 
     switch (state) {
       case _ObjectState._START_:
@@ -458,7 +462,7 @@ ValueIndex<ObjectNode>? parseObject(String input, List<Token> tokenList,
       case _ObjectState.OPEN_OBJECT:
         if (token.type == TokenType.RIGHT_BRACE) {
           if (settings.loc) {
-            final src = settings.source ?? "";
+            final String src = settings.source ?? "";
             object.loc = Location.create(
                 startToken.loc!.start.line,
                 startToken.loc!.start.column,
@@ -468,17 +472,17 @@ ValueIndex<ObjectNode>? parseObject(String input, List<Token> tokenList,
                 token.loc!.end.offset,
                 src);
           }
-          return ValueIndex(object, index + 1);
+          return ValueIndex<ObjectNode>(object, index + 1);
         } else {
-          final property =
+          final ValueIndex<PropertyNode>? property =
               parseProperty(input, tokenList, index, settings, '$path.');
           if (property != null) {
             object.children.add(property.value);
             state = _ObjectState.PROPERTY;
             index = property.index;
           } else {
-            final src = settings.source ?? "";
-            final msg = unexpectedToken(
+            final String src = settings.source ?? "";
+            final String msg = unexpectedToken(
                 substring(
                     input, token.loc!.start.offset, token.loc!.end.offset),
                 src,
@@ -492,7 +496,7 @@ ValueIndex<ObjectNode>? parseObject(String input, List<Token> tokenList,
 
       case _ObjectState.PROPERTY:
         if (token.type == TokenType.RIGHT_BRACE) {
-          final src = settings.source ?? "";
+          final String src = settings.source ?? "";
           object.loc = Location.create(
               startToken.loc!.start.line,
               startToken.loc!.start.column,
@@ -501,13 +505,13 @@ ValueIndex<ObjectNode>? parseObject(String input, List<Token> tokenList,
               token.loc!.end.column,
               token.loc!.end.offset,
               src);
-          return ValueIndex(object, index + 1);
+          return ValueIndex<ObjectNode>(object, index + 1);
         } else if (token.type == TokenType.COMMA) {
           state = _ObjectState.COMMA;
           index++;
         } else {
-          final src = settings.source ?? "";
-          final msg = unexpectedToken(
+          final String src = settings.source ?? "";
+          final String msg = unexpectedToken(
               substring(input, token.loc!.start.offset, token.loc!.end.offset),
               src,
               token.loc!.start.line,
@@ -518,7 +522,7 @@ ValueIndex<ObjectNode>? parseObject(String input, List<Token> tokenList,
         break;
 
       case _ObjectState.COMMA:
-        final property =
+        final ValueIndex<PropertyNode>? property =
             parseProperty(input, tokenList, index, settings, '$path.');
         if (property != null) {
           property.value.parent = object; // Set parent reference
@@ -526,8 +530,8 @@ ValueIndex<ObjectNode>? parseObject(String input, List<Token> tokenList,
           object.children.add(property.value);
           state = _ObjectState.PROPERTY;
         } else {
-          final src = settings.source ?? "";
-          final msg = unexpectedToken(
+          final String src = settings.source ?? "";
+          final String msg = unexpectedToken(
               substring(input, token.loc!.start.offset, token.loc!.end.offset),
               src,
               token.loc!.start.line,
@@ -544,20 +548,20 @@ ValueIndex<ObjectNode>? parseObject(String input, List<Token> tokenList,
 ValueIndex<PropertyNode>? parseProperty(String input, List<Token> tokenList,
     int index, Settings settings, String path) {
   late Token startToken;
-  final property = PropertyNode(path: path);
-  var state = _PropertyState._START_;
+  final PropertyNode property = PropertyNode(path: path);
+  _PropertyState state = _PropertyState._START_;
 
   while (index < tokenList.length) {
-    final token = tokenList[index];
+    final Token token = tokenList[index];
 
     switch (state) {
       case _PropertyState._START_:
         if (token.type == TokenType.STRING) {
-          final value = token.value; // Use token.value directly
+          final String? value = token.value; // Use token.value directly
           if (value == null) {
             return null;
           }
-          final key = ValueNode(value, token.value);
+          final ValueNode key = ValueNode(value, token.value);
           key.loc = token.loc;
           key.parent = property; // Set parent reference
           startToken = token;
@@ -575,8 +579,8 @@ ValueIndex<PropertyNode>? parseProperty(String input, List<Token> tokenList,
           state = _PropertyState.COLON;
           index++;
         } else {
-          final src = settings.source ?? "";
-          final msg = unexpectedToken(
+          final String src = settings.source ?? "";
+          final String msg = unexpectedToken(
               substring(input, token.loc!.start.offset, token.loc!.end.offset),
               src,
               token.loc!.start.line,
@@ -587,20 +591,20 @@ ValueIndex<PropertyNode>? parseProperty(String input, List<Token> tokenList,
         break;
 
       case _PropertyState.COLON:
-        final value =
+        final ValueIndex<dynamic> value =
             _parseValue(input, tokenList, index, settings, property.path);
         value.value.parent = property; // Set parent reference
-        property.value = value.value;
-        final src = settings.source ?? "";
+        property.value = value.value as Node?;
+        final String src = settings.source ?? "";
         property.loc = Location.create(
             startToken.loc!.start.line,
             startToken.loc!.start.column,
             startToken.loc!.start.offset,
-            value.value.loc.end.line,
-            value.value.loc.end.column,
-            value.value.loc.end.offset,
+            value.value.loc.end.line as int,
+            value.value.loc.end.column as int,
+            value.value.loc.end.offset as int,
             src);
-        return ValueIndex(property, value.index);
+        return ValueIndex<PropertyNode>(property, value.index);
     }
   }
   return null;
@@ -609,8 +613,8 @@ ValueIndex<PropertyNode>? parseProperty(String input, List<Token> tokenList,
 ValueIndex<ArrayNode>? parseArray(String input, List<Token> tokenList,
     int index, Settings settings, String path) {
   late Token startToken;
-  final array = ArrayNode(path: path);
-  var state = _ArrayState._START_;
+  final ArrayNode array = ArrayNode(path: path);
+  _ArrayState state = _ArrayState._START_;
   Token token;
   while (index < tokenList.length) {
     token = tokenList[index];
@@ -627,7 +631,7 @@ ValueIndex<ArrayNode>? parseArray(String input, List<Token> tokenList,
 
       case _ArrayState.OPEN_ARRAY:
         if (token.type == TokenType.RIGHT_BRACKET) {
-          final src = settings.source ?? "";
+          final String src = settings.source ?? "";
           array.loc = Location.create(
               startToken.loc!.start.line,
               startToken.loc!.start.column,
@@ -636,20 +640,20 @@ ValueIndex<ArrayNode>? parseArray(String input, List<Token> tokenList,
               token.loc!.end.column,
               token.loc!.end.offset,
               src);
-          return ValueIndex(array, index + 1);
+          return ValueIndex<ArrayNode>(array, index + 1);
         } else {
-          final value = _parseValue(input, tokenList, index, settings,
-              '$path[${array.children.length}]');
+          final ValueIndex<dynamic> value = _parseValue(input, tokenList, index,
+              settings, '$path[${array.children.length}]');
           value.value.parent = array; // Set parent reference
           index = value.index;
-          array.children.add(value.value);
+          array.children.add(value.value as Node);
           state = _ArrayState.VALUE;
         }
         break;
 
       case _ArrayState.VALUE:
         if (token.type == TokenType.RIGHT_BRACKET) {
-          final src = settings.source ?? "";
+          final String src = settings.source ?? "";
           array.loc = Location.create(
               startToken.loc!.start.line,
               startToken.loc!.start.column,
@@ -658,13 +662,13 @@ ValueIndex<ArrayNode>? parseArray(String input, List<Token> tokenList,
               token.loc!.end.column,
               token.loc!.end.offset,
               src);
-          return ValueIndex(array, index + 1);
+          return ValueIndex<ArrayNode>(array, index + 1);
         } else if (token.type == TokenType.COMMA) {
           state = _ArrayState.COMMA;
           index++;
         } else {
-          final src = settings.source ?? "";
-          final msg = unexpectedToken(
+          final String src = settings.source ?? "";
+          final String msg = unexpectedToken(
               substring(input, token.loc!.start.offset, token.loc!.end.offset),
               src,
               token.loc!.start.line,
@@ -675,11 +679,11 @@ ValueIndex<ArrayNode>? parseArray(String input, List<Token> tokenList,
         break;
 
       case _ArrayState.COMMA:
-        final value = _parseValue(input, tokenList, index, settings,
-            '$path[${array.children.length}]');
+        final ValueIndex<dynamic> value = _parseValue(input, tokenList, index,
+            settings, '$path[${array.children.length}]');
         value.value.parent = array; // Set parent reference
         index = value.index;
-        array.children.add(value.value);
+        array.children.add(value.value as Node);
         state = _ArrayState.VALUE;
         break;
     }
@@ -689,8 +693,8 @@ ValueIndex<ArrayNode>? parseArray(String input, List<Token> tokenList,
 
 ValueIndex<LiteralNode>? parseLiteral(String input, List<Token> tokenList,
     int index, Settings settings, String path) {
-  final token = tokenList[index];
-  var value;
+  final Token token = tokenList[index];
+  Object? value;
 
   switch (token.type) {
     case TokenType.STRING:
@@ -720,20 +724,25 @@ ValueIndex<LiteralNode>? parseLiteral(String input, List<Token> tokenList,
       return null;
   }
 
-  final literal = LiteralNode(value, token.value, path: path);
+  final LiteralNode literal = LiteralNode(value, token.value, path: path);
   literal.loc = token.loc;
-  return ValueIndex(literal, index + 1);
+  return ValueIndex<LiteralNode>(literal, index + 1);
 }
 
-typedef ValueIndex? _parserFun(String input, List<Token> tokenList, int index,
-    Settings settings, String path);
+typedef ValueIndex<dynamic>? _parserFun(String input, List<Token> tokenList,
+    int index, Settings settings, String path);
 
-List<_parserFun> _parsersList = [parseLiteral, parseObject, parseArray];
+List<_parserFun> _parsersList = <_parserFun>[
+  parseLiteral,
+  parseObject,
+  parseArray
+];
 
-ValueIndex? _findValueIndex(String input, List<Token> tokenList, int index,
-    Settings settings, String path) {
-  for (final parser in _parsersList) {
-    final valueIndex = parser(input, tokenList, index, settings, path);
+ValueIndex<dynamic>? _findValueIndex(String input, List<Token> tokenList,
+    int index, Settings settings, String path) {
+  for (final _parserFun parser in _parsersList) {
+    final ValueIndex<dynamic>? valueIndex =
+        parser(input, tokenList, index, settings, path);
     if (valueIndex != null) {
       return valueIndex;
     }
@@ -741,16 +750,17 @@ ValueIndex? _findValueIndex(String input, List<Token> tokenList, int index,
   return null;
 }
 
-ValueIndex _parseValue(String input, List<Token> tokenList, int index,
+ValueIndex<dynamic> _parseValue(String input, List<Token> tokenList, int index,
     Settings settings, String path) {
-  final token = tokenList[index];
-  final value = _findValueIndex(input, tokenList, index, settings, path);
+  final Token token = tokenList[index];
+  final ValueIndex<dynamic>? value =
+      _findValueIndex(input, tokenList, index, settings, path);
 
   if (value != null) {
     return value;
   } else {
-    final src = settings.source ?? "";
-    final msg = unexpectedToken(
+    final String src = settings.source ?? "";
+    final String msg = unexpectedToken(
         substring(input, token.loc!.start.offset, token.loc!.end.offset),
         src,
         token.loc!.start.line,
@@ -761,21 +771,22 @@ ValueIndex _parseValue(String input, List<Token> tokenList, int index,
 }
 
 Node parse(String input, Settings settings, String path) {
-  final tokenList = tokenize(input, settings);
+  final List<Token> tokenList = tokenize(input, settings);
 
   if (tokenList.isEmpty) {
     throw errorEof(input, tokenList, settings);
   }
 
-  final value = _parseValue(input, tokenList, 0, settings, path);
+  final ValueIndex<dynamic> value =
+      _parseValue(input, tokenList, 0, settings, path);
 
   if (value.index == tokenList.length) {
-    return value.value;
+    return value.value as Node;
   }
 
-  final token = tokenList[value.index];
-  final src = settings.source ?? "";
-  final msg = unexpectedToken(
+  final Token token = tokenList[value.index];
+  final String src = settings.source ?? "";
+  final String msg = unexpectedToken(
       substring(input, token.loc!.start.offset, token.loc!.end.offset),
       src,
       token.loc!.start.line,
@@ -786,15 +797,16 @@ Node parse(String input, Settings settings, String path) {
 
 JSONASTException errorEof(
     String input, List<dynamic> tokenList, Settings settings) {
-  final Loc loc =
-      tokenList.isNotEmpty ? tokenList.last.loc.end : Loc(line: 1, column: 1);
-  final src = settings.source ?? "";
+  final Loc loc = tokenList.isNotEmpty
+      ? tokenList.last.loc.end as Loc
+      : Loc(line: 1, column: 1);
+  final String src = settings.source ?? "";
   return JSONASTException(unexpectedEnd(), input, src, loc.line, loc.column);
 }
 
 typedef Token? _tokenParser(String input, int index, int line, int column);
 
-List<_tokenParser> _parsers = [
+List<_tokenParser> _parsers = <_tokenParser>[
   parseChar,
   parseKeyword,
   parseString,
@@ -802,8 +814,8 @@ List<_tokenParser> _parsers = [
 ];
 
 Token? _parseToken(String input, int index, int line, int column) {
-  for (final parser in _parsers) {
-    final token = parser(input, index, line, column);
+  for (final _tokenParser parser in _parsers) {
+    final Token? token = parser(input, index, line, column);
     if (token != null) {
       return token;
     }
@@ -820,7 +832,7 @@ class Position {
 }
 
 Position? parseWhitespace(String input, int index, int line, int column) {
-  final char = input[index];
+  final String char = input[index];
 
   if (char == '\r') {
     // CR (Unix)
@@ -847,9 +859,9 @@ Position? parseWhitespace(String input, int index, int line, int column) {
 }
 
 Token? parseChar(String input, int index, int line, int column) {
-  final char = input[index];
+  final String char = input[index];
   if (punctuatorTokensMap.containsKey(char)) {
-    final tokenType = punctuatorTokensMap[char];
+    final TokenType? tokenType = punctuatorTokensMap[char];
     return Token(tokenType, line, column + 1, index + 1, null);
   }
 
@@ -857,11 +869,12 @@ Token? parseChar(String input, int index, int line, int column) {
 }
 
 Token? parseKeyword(String input, int index, int line, int column) {
-  final entries = keywordTokensMap.entries;
-  for (final entry in entries) {
-    final keyLen = entry.key.length;
-    final nextLen = index + keyLen;
-    final lastIndex = nextLen > input.length ? input.length : nextLen;
+  final Iterable<MapEntry<String, TokenType>> entries =
+      keywordTokensMap.entries;
+  for (final MapEntry<String, TokenType> entry in entries) {
+    final int keyLen = entry.key.length;
+    final int nextLen = index + keyLen;
+    final int lastIndex = nextLen > input.length ? input.length : nextLen;
     if (safeSubstring(input, index, lastIndex) == entry.key) {
       return Token(entry.value, line, column + keyLen, lastIndex, entry.key);
     }
@@ -871,12 +884,12 @@ Token? parseKeyword(String input, int index, int line, int column) {
 }
 
 Token? parseString(String input, int index, int line, int column) {
-  final startIndex = index;
+  final int startIndex = index;
   _StringState state = _StringState._START_;
-  final stringBuffer = StringBuffer();
+  final StringBuffer stringBuffer = StringBuffer();
 
   while (index < input.length) {
-    final char = input[index];
+    final String char = input[index];
 
     switch (state) {
       case _StringState._START_:
@@ -907,7 +920,7 @@ Token? parseString(String input, int index, int line, int column) {
           index++;
           if (char == 'u') {
             for (int i = 0; i < 4; i++) {
-              final curChar = input[index];
+              final String curChar = input[index];
               if (curChar != '' && isHex(curChar)) {
                 stringBuffer.write(curChar);
                 index++;
@@ -929,13 +942,13 @@ Token? parseString(String input, int index, int line, int column) {
 }
 
 Token? parseNumber(String input, int index, int line, int column) {
-  final startIndex = index;
+  final int startIndex = index;
   int passedValueIndex = index;
   _NumberState state = _NumberState._START_;
 
   iterator:
   while (index < input.length) {
-    final char = input[index];
+    final String char = input[index];
 
     switch (state) {
       case _NumberState._START_:
@@ -1047,7 +1060,7 @@ List<Token> tokenize(String input, Settings settings) {
   List<Token> tokens = <Token>[];
 
   while (index < input.length) {
-    final whitespace = parseWhitespace(input, index, line, column);
+    final Position? whitespace = parseWhitespace(input, index, line, column);
     if (whitespace != null) {
       index = whitespace.index;
       line = whitespace.line;
@@ -1055,10 +1068,10 @@ List<Token> tokenize(String input, Settings settings) {
       continue;
     }
 
-    final token = _parseToken(input, index, line, column);
+    final Token? token = _parseToken(input, index, line, column);
 
     if (token != null) {
-      final src = settings.source ?? "";
+      final String src = settings.source ?? "";
       token.loc = Location.create(
           line, column, index, token.line, token.column, token.index, src);
       tokens.add(token);
@@ -1066,8 +1079,8 @@ List<Token> tokenize(String input, Settings settings) {
       line = token.line;
       column = token.column;
     } else {
-      final src = settings.source ?? "";
-      final msg = unexpectedSymbol(
+      final String src = settings.source ?? "";
+      final String msg = unexpectedSymbol(
           substring(input, index, index + 1), src, line, column);
       throw JSONASTException(msg, input, src, line, column);
     }
@@ -1078,27 +1091,27 @@ List<Token> tokenize(String input, Settings settings) {
 // HELPERS
 
 bool isDigit1to9(String char) {
-  final charCode = char.codeUnitAt(0);
+  final int charCode = char.codeUnitAt(0);
   return charCode >= '1'.codeUnitAt(0) && charCode <= '9'.codeUnitAt(0);
 }
 
 bool isDigit(String char) {
-  final charCode = char.codeUnitAt(0);
+  final int charCode = char.codeUnitAt(0);
   return charCode >= '0'.codeUnitAt(0) && charCode <= '9'.codeUnitAt(0);
 }
 
-bool isHex(char) {
-  final charCode = char.codeUnitAt(0);
+bool isHex(String char) {
+  final int charCode = char.codeUnitAt(0);
   return (isDigit(char) ||
       (charCode >= 'a'.codeUnitAt(0) && charCode <= 'f'.codeUnitAt(0)) ||
       (charCode >= 'A'.codeUnitAt(0) && charCode <= 'F'.codeUnitAt(0)));
 }
 
-bool isExp(char) {
+bool isExp(String char) {
   return char == 'e' || char == 'E';
 }
 
-final Map<String, int> escapes = {
+final Map<String, int> escapes = <String, int>{
   '"': 0, // Quotation mask
   '\\': 1, // Reverse solidus
   '/': 2, // Solidus

@@ -8,14 +8,15 @@ String? findCode(ElementDefinition element, String path) {
     return element.type?.first.code?.toString();
   } else if ((element.type?.length ?? 0) > 1) {
     if (element.path?.endsWith('[x]') ?? false) {
-      final type = path
+      final String type = path
           .split('.')
           .last
           .replaceAll(
               element.path?.split('.').last.replaceAll('[x]', '') ?? '', '')
           .toLowerCase();
       return element.type!
-          .firstWhereOrNull((t) => t.code?.toString().toLowerCase() == type)
+          .firstWhereOrNull((ElementDefinitionType t) =>
+              t.code?.toString().toLowerCase() == type)
           ?.code
           ?.toString();
     }
@@ -36,7 +37,7 @@ String _stripIndexes(String path) {
 
 List<ElementDefinition> extractElements(
     StructureDefinition structureDefinition) {
-  return structureDefinition.snapshot?.element ?? [];
+  return structureDefinition.snapshot?.element ?? <ElementDefinition>[];
 }
 
 extension GetUrl on StructureDefinition {
@@ -51,34 +52,36 @@ extension GetUrl on StructureDefinition {
 
 Future<Set<String>> getValueSetCodes(String valueSetUrl, Client? client) async {
   // Fetch the initial value set or code system from the URL
-  final resourceJson = await getAnyResource(valueSetUrl, client);
+  final Map<String, dynamic>? resourceJson =
+      await getAnyResource(valueSetUrl, client);
   if (resourceJson == null) {
     throw Exception('Resource not found at $valueSetUrl');
   }
 
-  final resourceType = resourceJson['resourceType'] as String?;
-  final codes = <String>{};
+  final String? resourceType = resourceJson['resourceType'] as String?;
+  final Set<String> codes = <String>{};
 
   if (resourceType == 'ValueSet') {
-    final valueSet = ValueSet.fromJson(resourceJson);
+    final ValueSet valueSet = ValueSet.fromJson(resourceJson);
     // Extract codes from the ValueSet.compose.include section
     if (valueSet.compose != null) {
-      for (var include in valueSet.compose!.include) {
+      for (ValueSetInclude include in valueSet.compose!.include) {
         // Fetch and process included ValueSet or CodeSystem URLs
         if (include.valueSet != null) {
-          for (var includedValueSetUrl in include.valueSet!) {
-            final includedCodes = await _fetchIncludedValueSetCodes(
+          for (FhirCanonical includedValueSetUrl in include.valueSet!) {
+            final Set<String> includedCodes = await _fetchIncludedValueSetCodes(
                 includedValueSetUrl.toString(), client);
             codes.addAll(includedCodes);
           }
         }
         if (include.system != null) {
-          final includedCodes = await _fetchIncludedValueSetCodes(
+          final Set<String> includedCodes = await _fetchIncludedValueSetCodes(
               include.system.toString(), client);
           codes.addAll(includedCodes);
         }
         // Extract codes from the concepts directly defined in the include section
-        for (var concept in include.concept ?? <ValueSetConcept>[]) {
+        for (ValueSetConcept concept
+            in include.concept ?? <ValueSetConcept>[]) {
           if (concept.code != null) {
             codes.add(concept.code!.toString());
           }
@@ -88,18 +91,20 @@ Future<Set<String>> getValueSetCodes(String valueSetUrl, Client? client) async {
 
     // Extract codes from the ValueSet.expansion.contains section
     if (valueSet.expansion != null) {
-      for (var contains in valueSet.expansion!.contains ?? []) {
+      for (ValueSetContains contains
+          in valueSet.expansion!.contains ?? <ValueSetContains>[]) {
         if (contains.code != null) {
-          codes.add(contains.code!);
+          codes.add(contains.code!.toString());
         }
       }
     }
   } else if (resourceType == 'CodeSystem') {
-    final codeSystem = CodeSystem.fromJson(resourceJson);
+    final CodeSystem codeSystem = CodeSystem.fromJson(resourceJson);
     // Extract codes from the CodeSystem.concept section
-    for (var concept in codeSystem.concept ?? []) {
+    for (CodeSystemConcept concept
+        in codeSystem.concept ?? <CodeSystemConcept>[]) {
       if (concept.code != null) {
-        codes.add(concept.code!);
+        codes.add(concept.code!.toString());
       }
       // Recursively extract codes from nested concepts
       codes.addAll(_extractCodesFromConcept(concept));
@@ -114,23 +119,25 @@ Future<Set<String>> getValueSetCodes(String valueSetUrl, Client? client) async {
 Future<Set<String>> _fetchIncludedValueSetCodes(
     String includedValueSetUrl, Client? client) async {
   // Fetch the included ValueSet or CodeSystem
-  final resourceJson = await getAnyResource(includedValueSetUrl, client);
+  final Map<String, dynamic>? resourceJson =
+      await getAnyResource(includedValueSetUrl, client);
   if (resourceJson == null) {
     return <String>{};
   }
 
-  final resourceType = resourceJson['resourceType'] as String?;
-  final includedCodes = <String>{};
+  final String? resourceType = resourceJson['resourceType'] as String?;
+  final Set<String> includedCodes = <String>{};
 
   if (resourceType == 'ValueSet') {
-    final includedValueSet = ValueSet.fromJson(resourceJson);
+    final ValueSet includedValueSet = ValueSet.fromJson(resourceJson);
     // Extract codes from the included ValueSet's compose.include section
     if (includedValueSet.compose != null) {
-      for (var include in includedValueSet.compose!.include) {
+      for (ValueSetInclude include in includedValueSet.compose!.include) {
         // Do not recurse further if the included ValueSet references other ValueSets
-        for (var concept in include.concept ?? []) {
+        for (ValueSetConcept concept
+            in include.concept ?? <ValueSetConcept>[]) {
           if (concept.code != null) {
-            includedCodes.add(concept.code!);
+            includedCodes.add(concept.code!.toString());
           }
         }
       }
@@ -138,16 +145,18 @@ Future<Set<String>> _fetchIncludedValueSetCodes(
 
     // Extract codes from the included ValueSet's expansion.contains section
     if (includedValueSet.expansion != null) {
-      for (var contains in includedValueSet.expansion!.contains ?? []) {
+      for (ValueSetContains contains
+          in includedValueSet.expansion!.contains ?? <ValueSetContains>[]) {
         if (contains.code != null) {
-          includedCodes.add(contains.code!);
+          includedCodes.add(contains.code!.toString());
         }
       }
     }
   } else if (resourceType == 'CodeSystem') {
-    final includedCodeSystem = CodeSystem.fromJson(resourceJson);
+    final CodeSystem includedCodeSystem = CodeSystem.fromJson(resourceJson);
     // Extract codes from the CodeSystem.concept section
-    for (var concept in includedCodeSystem.concept ?? <CodeSystemConcept>[]) {
+    for (CodeSystemConcept concept
+        in includedCodeSystem.concept ?? <CodeSystemConcept>[]) {
       if (concept.code != null) {
         includedCodes.add(concept.code!.toString());
       }
@@ -160,11 +169,12 @@ Future<Set<String>> _fetchIncludedValueSetCodes(
 }
 
 Set<String> _extractCodesFromConcept(CodeSystemConcept concept) {
-  final codes = <String>{};
+  final Set<String> codes = <String>{};
   if (concept.code != null) {
     codes.add(concept.code!.toString());
   }
-  for (var subConcept in concept.concept ?? []) {
+  for (CodeSystemConcept subConcept
+      in concept.concept ?? <CodeSystemConcept>[]) {
     codes.addAll(_extractCodesFromConcept(subConcept));
   }
   return codes;

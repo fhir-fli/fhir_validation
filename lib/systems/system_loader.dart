@@ -65,7 +65,7 @@ Future<Map<String, dynamic>?> _getResource(
   if (result != null) {
     resourceCache.set(url, result);
     if (result['url'] != null) {
-      resourceCache.set(result['url'], result);
+      resourceCache.set(result['url'] as String, result);
     }
     return result;
   } else {
@@ -75,7 +75,7 @@ Future<Map<String, dynamic>?> _getResource(
         (resourceType == '' || result['resourceType'] == resourceType)) {
       resourceCache.set(url, result);
       if (result['url'] != null) {
-        resourceCache.set(result['url'], result);
+        resourceCache.set(result['url'] as String, result);
       }
       return result;
     }
@@ -92,12 +92,13 @@ Future<Map<String, dynamic>?> _getResource(
 Future<Map<String, dynamic>?> _requestFromCanonical(
     String canonical, Client? client) async {
   try {
-    final response = await (client?.get(Uri.parse(canonical),
+    final Response response = await (client?.get(Uri.parse(canonical),
             headers: {'Accept': 'application/fhir+json'}) ??
         get(Uri.parse(canonical),
             headers: {'Accept': 'application/fhir+json'}));
     if (response.statusCode == 200) {
-      final result = jsonDecode(response.body);
+      final Map<String, dynamic> result =
+          jsonDecode(response.body) as Map<String, dynamic>;
       resourceCache.set(canonical, result);
       return result;
     }

@@ -7,10 +7,10 @@ Future<String> notInValueSetMessage(dynamic value,
   if (valueSetCanonical == null) {
     return "There was an error in our software evaluating the value ($value), please let us know.";
   }
-  final valueSetMap = await getValueSet(valueSetCanonical.toString(), client);
+  final Map<String, dynamic>? valueSetMap = await getValueSet(valueSetCanonical.toString(), client);
 
   if (valueSetMap != null) {
-    final valueSet = ValueSet.fromJson(valueSetMap);
+    final ValueSet valueSet = ValueSet.fromJson(valueSetMap);
     if (valueSet.title != null) {
       return "The value provided ($value) is not from the ValueSet ${valueSet.title} ($valueSetCanonical), $message.";
     } else if (valueSet.name != null) {

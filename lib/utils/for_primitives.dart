@@ -1,6 +1,6 @@
 import 'package:fhir_primitives/fhir_primitives.dart';
 
-bool isPrimitiveType(String type) => ([
+bool isPrimitiveType(String type) => (<String>[
       'base64binary',
       'boolean',
       'canonical',
@@ -25,7 +25,7 @@ bool isPrimitiveType(String type) => ([
       'http://hl7.org/fhirpath/system.string'
     ].contains(type.toLowerCase()));
 
-bool isComparablePrimitive(String type) => ([
+bool isComparablePrimitive(String type) => (<String>[
       'date',
       'decimal',
       'datetime',
@@ -101,11 +101,11 @@ bool isValueAValidPrimitive(String primitiveClass, dynamic value) {
       case 'code':
         return FhirCode.fromJson(value).isValid;
       case 'date':
-        return FhirDate.fromJson(value).isValid;
+        return value is String ? FhirDate.fromJson(value).isValid : false;
       case 'decimal':
         return FhirDecimal.fromJson(value).isValid;
       case 'datetime':
-        return FhirDateTime.fromJson(value).isValid;
+        return value is String ? FhirDateTime.fromJson(value).isValid : false;
       case 'uri':
         return FhirUri.fromJson(value).isValid;
       case 'url':
@@ -113,7 +113,7 @@ bool isValueAValidPrimitive(String primitiveClass, dynamic value) {
       case 'id':
         return FhirId.fromJson(value).isValid;
       case 'instant':
-        return FhirInstant.fromJson(value).isValid;
+        return value is String ? FhirInstant.fromJson(value).isValid : false;
       case 'integer':
         return FhirInteger.fromJson(value).isValid;
       case 'integer64':

@@ -2,16 +2,16 @@ import 'package:fhir_r4/fhir_r4.dart';
 import 'package:fhir_validation/fhir_validation.dart';
 
 class ValidationResults {
-  final List<ValidationDiagnostics> results = [];
-  final List<ValidationDiagnostics> missingResults = [];
+  final List<ValidationDiagnostics> results = <ValidationDiagnostics>[];
+  final List<ValidationDiagnostics> missingResults = <ValidationDiagnostics>[];
 
   void addResult(Node? node, String newItem, Severity severity) {
     results.add(ValidationDiagnostics.create(node, newItem, severity));
   }
 
   void addMissingResult(String path, String newItem, Severity severity) {
-    final index =
-        missingResults.indexWhere((element) => path.startsWith(element.path));
+    final int index = missingResults.indexWhere(
+        (ValidationDiagnostics element) => path.startsWith(element.path));
     if (index == -1) {
       missingResults.add(ValidationDiagnostics(path, newItem, severity));
     }
@@ -28,19 +28,22 @@ class ValidationResults {
 
   Map<String, dynamic> toJson() {
     _joinResults();
-    final error = results
-        .where((element) => element.severity == Severity.error)
-        .map((e) => e.toJson())
+    final List<Map<String, dynamic>> error = results
+        .where((ValidationDiagnostics element) =>
+            element.severity == Severity.error)
+        .map((ValidationDiagnostics e) => e.toJson())
         .toList();
-    final warning = results
-        .where((element) => element.severity == Severity.warning)
-        .map((e) => e.toJson())
+    final List<Map<String, dynamic>> warning = results
+        .where((ValidationDiagnostics element) =>
+            element.severity == Severity.warning)
+        .map((ValidationDiagnostics e) => e.toJson())
         .toList();
-    final information = results
-        .where((element) => element.severity == Severity.information)
-        .map((e) => e.toJson())
+    final List<Map<String, dynamic>> information = results
+        .where((ValidationDiagnostics element) =>
+            element.severity == Severity.information)
+        .map((ValidationDiagnostics e) => e.toJson())
         .toList();
-    return {
+    return <String, dynamic>{
       'error': error,
       'warning': warning,
       'information': information,
@@ -53,11 +56,14 @@ class ValidationResults {
   }
 
   List<ValidationDiagnostics> _cleanMissingResults() {
-    missingResults.sort((a, b) => a.path.length.compareTo(b.path.length));
-    final cleanedResults = <ValidationDiagnostics>[];
-    for (final result in missingResults) {
-      final index = cleanedResults
-          .indexWhere((element) => result.path.startsWith(element.path));
+    missingResults.sort((ValidationDiagnostics a, ValidationDiagnostics b) =>
+        a.path.length.compareTo(b.path.length));
+    final List<ValidationDiagnostics> cleanedResults =
+        <ValidationDiagnostics>[];
+    for (final ValidationDiagnostics result in missingResults) {
+      final int index = cleanedResults.indexWhere(
+          (ValidationDiagnostics element) =>
+              result.path.startsWith(element.path));
       if (index == -1) {
         cleanedResults.add(result);
       }
@@ -72,7 +78,7 @@ class ValidationResults {
           diagnostics: e.diagnostics,
           extension_: e.line == null && e.column == null
               ? null
-              : [
+              : <FhirExtension>[
                   if (e.line != null)
                     FhirExtension(
                       url: FhirUri(
@@ -88,7 +94,7 @@ class ValidationResults {
                           e.column == null ? null : FhirInteger(e.column!),
                     ),
                 ],
-          location: [
+          location: <String>[
             e.path,
             if (e.line != null && e.column != null)
               'Line[${e.line}] Column[${e.column}]',
@@ -98,20 +104,29 @@ class ValidationResults {
 
   OperationOutcome toOperationOutcome() {
     _joinResults();
-    final error =
-        results.where((element) => element.severity == Severity.error).toList();
-    final warning = results
-        .where((element) => element.severity == Severity.warning)
+    final List<ValidationDiagnostics> error = results
+        .where((ValidationDiagnostics element) =>
+            element.severity == Severity.error)
         .toList();
-    final information = results
-        .where((element) => element.severity == Severity.information)
+    final List<ValidationDiagnostics> warning = results
+        .where((ValidationDiagnostics element) =>
+            element.severity == Severity.warning)
         .toList();
-    final issues = <OperationOutcomeIssue>[];
-    issues.addAll(error.map((e) => _makeOperationOutcomeIssue(e)).toList());
-    issues.addAll(warning.map((e) => _makeOperationOutcomeIssue(e)).toList());
-    issues
-        .addAll(information.map((e) => _makeOperationOutcomeIssue(e)).toList());
-    final outcome = OperationOutcome(issue: issues);
+    final List<ValidationDiagnostics> information = results
+        .where((ValidationDiagnostics element) =>
+            element.severity == Severity.information)
+        .toList();
+    final List<OperationOutcomeIssue> issues = <OperationOutcomeIssue>[];
+    issues.addAll(error
+        .map((ValidationDiagnostics e) => _makeOperationOutcomeIssue(e))
+        .toList());
+    issues.addAll(warning
+        .map((ValidationDiagnostics e) => _makeOperationOutcomeIssue(e))
+        .toList());
+    issues.addAll(information
+        .map((ValidationDiagnostics e) => _makeOperationOutcomeIssue(e))
+        .toList());
+    final OperationOutcome outcome = OperationOutcome(issue: issues);
     return outcome;
   }
 
@@ -145,7 +160,7 @@ class ValidationDiagnostics {
   });
 
   Map<String, dynamic> toJson() {
-    return {
+    return <String, dynamic>{
       'path': path,
       'diagnostics': diagnostics,
       'severity': severity.toString(),

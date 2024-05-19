@@ -46,7 +46,7 @@ Future<ValidationResults> _objectNode(
   ValidationResults results,
   Client? client,
 ) async {
-  for (var property in node.children) {
+  for (PropertyNode property in node.children) {
     results = await _propertyNode(
         property, originalPath, replacePath, elements, results, client);
   }
@@ -61,11 +61,12 @@ Future<ValidationResults> _arrayNode(
   ValidationResults results,
   Client? client,
 ) async {
-  for (final child in node.children) {
+  for (final Node child in node.children) {
     if (child is LiteralNode) {
-      final cleanPath = cleanLocalPath(originalPath, replacePath, node.path);
-      final element =
-          elements.firstWhereOrNull((element) => element.path == cleanPath);
+      final String cleanPath =
+          cleanLocalPath(originalPath, replacePath, node.path);
+      final ElementDefinition? element = elements.firstWhereOrNull(
+          (ElementDefinition element) => element.path == cleanPath);
       if (element != null) {
         results = await _literalNode(child, element, results, client);
       } else {
@@ -91,7 +92,7 @@ Future<ValidationResults> _propertyNode(
   ValidationResults results,
   Client? client,
 ) async {
-  final cleanPath = cleanLocalPath(originalPath, replacePath, node.path);
+  final String cleanPath = cleanLocalPath(originalPath, replacePath, node.path);
   ElementDefinition? element = _findElementDefinition(cleanPath, elements);
 
   if (_isAResourceType(node, element)) {
@@ -138,12 +139,13 @@ Future<ValidationResults> _withoutCode(
   ValidationResults results,
   Client? client,
 ) async {
-  for (final ext in element.extension_ ?? <FhirExtension>[]) {
-    final url = ext.url?.toString();
+  for (final FhirExtension ext in element.extension_ ?? <FhirExtension>[]) {
+    final String? url = ext.url?.toString();
     if (url != null) {
-      final structureDefinition = await getStructureDefinition(url, client);
+      final Map<String, dynamic>? structureDefinition =
+          await getStructureDefinition(url, client);
       if (structureDefinition != null) {
-        final newElements =
+        final List<ElementDefinition> newElements =
             extractElements(StructureDefinition.fromJson(structureDefinition));
         return await _traverseAst(
             node, originalPath, replacePath, newElements, results, client);
@@ -187,7 +189,8 @@ Future<ValidationResults> _codeIsComplexType(
   ValidationResults results,
   Client? client,
 ) async {
-  final structureDefinitionMap = await getStructureDefinition(code, client);
+  final Map<String, dynamic>? structureDefinitionMap =
+      await getStructureDefinition(code, client);
   final StructureDefinition? structureDefinition =
       structureDefinitionMap != null
           ? StructureDefinition.fromJson(structureDefinitionMap)
@@ -195,7 +198,8 @@ Future<ValidationResults> _codeIsComplexType(
   if (structureDefinition == null) {
     return _noStructureDefinitionOrProfile(code, node, results);
   }
-  final newElements = extractElements(structureDefinition);
+  final List<ElementDefinition> newElements =
+      extractElements(structureDefinition);
   if (newElements.isNotEmpty) {
     if (node.value != null) {
       return await _traverseAst(
@@ -247,8 +251,8 @@ Future<ValidationResults> _literalNode(
   ValidationResults results,
   Client? client,
 ) async {
-  final primitiveClass = findCode(element, node.path);
-  final value = node.value;
+  final String? primitiveClass = findCode(element, node.path);
+  final dynamic value = node.value;
 
   if (!isValueAValidPrimitive(primitiveClass.toString(), value)) {
     results.addResult(
@@ -279,7 +283,7 @@ Future<ValidationResults> _checkEnumerations(
       element.binding!.strength == ElementDefinitionBindingStrength.required_ &&
       element.binding?.valueSet != null) {
     // Get the allowed codes from the value set
-    final allowedCodes =
+    final Set<String> allowedCodes =
         await getValueSetCodes(element.binding!.valueSet.toString(), client);
     if (!allowedCodes.contains(value)) {
       results.addResult(
@@ -299,7 +303,7 @@ ValidationResults _checkStringPatterns(
   Node node,
 ) {
   if (element.patternString != null && value is String) {
-    final regex = RegExp(element.patternString!);
+    final RegExp regex = RegExp(element.patternString!);
     if (!regex.hasMatch(value)) {
       results.addResult(
         node,
@@ -321,7 +325,7 @@ ValidationResults _checkRangeConstraints(
   if (primitiveClass == null || !isComparablePrimitive(primitiveClass)) {
     return results;
   }
-  final minValue = _minimumValueConstraint(element);
+  final dynamic minValue = _minimumValueConstraint(element);
   if (minValue != null && _compareValues(value, minValue) < 0) {
     results.addResult(
       node,
@@ -330,7 +334,7 @@ ValidationResults _checkRangeConstraints(
     );
   }
 
-  final maxValue = _maximumValueConstraint(element);
+  final dynamic maxValue = _maximumValueConstraint(element);
   if (maxValue != null && _compareValues(value, maxValue) > 0) {
     results.addResult(
       node,
@@ -343,28 +347,64 @@ ValidationResults _checkRangeConstraints(
 }
 
 dynamic _minimumValueConstraint(ElementDefinition element) {
-  if (element.minValueDate != null) return element.minValueDate;
-  if (element.minValueDateTime != null) return element.minValueDateTime;
-  if (element.minValueInstant != null) return element.minValueInstant;
-  if (element.minValueTime != null) return element.minValueTime;
-  if (element.minValueDecimal != null) return element.minValueDecimal;
-  if (element.minValueInteger != null) return element.minValueInteger;
-  if (element.minValuePositiveInt != null) return element.minValuePositiveInt;
-  if (element.minValueUnsignedInt != null) return element.minValueUnsignedInt;
-  if (element.minValueQuantity != null) return element.minValueQuantity;
+  if (element.minValueDate != null) {
+    return element.minValueDate;
+  }
+  if (element.minValueDateTime != null) {
+    return element.minValueDateTime;
+  }
+  if (element.minValueInstant != null) {
+    return element.minValueInstant;
+  }
+  if (element.minValueTime != null) {
+    return element.minValueTime;
+  }
+  if (element.minValueDecimal != null) {
+    return element.minValueDecimal;
+  }
+  if (element.minValueInteger != null) {
+    return element.minValueInteger;
+  }
+  if (element.minValuePositiveInt != null) {
+    return element.minValuePositiveInt;
+  }
+  if (element.minValueUnsignedInt != null) {
+    return element.minValueUnsignedInt;
+  }
+  if (element.minValueQuantity != null) {
+    return element.minValueQuantity;
+  }
   return null;
 }
 
 dynamic _maximumValueConstraint(ElementDefinition element) {
-  if (element.maxValueDate != null) return element.maxValueDate;
-  if (element.maxValueDateTime != null) return element.maxValueDateTime;
-  if (element.maxValueInstant != null) return element.maxValueInstant;
-  if (element.maxValueTime != null) return element.maxValueTime;
-  if (element.maxValueDecimal != null) return element.maxValueDecimal;
-  if (element.maxValueInteger != null) return element.maxValueInteger;
-  if (element.maxValuePositiveInt != null) return element.maxValuePositiveInt;
-  if (element.maxValueUnsignedInt != null) return element.maxValueUnsignedInt;
-  if (element.maxValueQuantity != null) return element.maxValueQuantity;
+  if (element.maxValueDate != null) {
+    return element.maxValueDate;
+  }
+  if (element.maxValueDateTime != null) {
+    return element.maxValueDateTime;
+  }
+  if (element.maxValueInstant != null) {
+    return element.maxValueInstant;
+  }
+  if (element.maxValueTime != null) {
+    return element.maxValueTime;
+  }
+  if (element.maxValueDecimal != null) {
+    return element.maxValueDecimal;
+  }
+  if (element.maxValueInteger != null) {
+    return element.maxValueInteger;
+  }
+  if (element.maxValuePositiveInt != null) {
+    return element.maxValuePositiveInt;
+  }
+  if (element.maxValueUnsignedInt != null) {
+    return element.maxValueUnsignedInt;
+  }
+  if (element.maxValueQuantity != null) {
+    return element.maxValueQuantity;
+  }
   return null;
 }
 
@@ -388,7 +428,15 @@ ValidationResults _checkDateTimeFormats(
           primitiveClass == 'instant')) {
     try {
       // Attempt to parse the date/time value
-      DateTime.parse(value);
+      if (value is! String) {
+        results.addResult(
+          node,
+          'Value "$value" is not a valid $primitiveClass format.',
+          Severity.error,
+        );
+      } else {
+        DateTime.parse(value);
+      }
     } catch (e) {
       results.addResult(
         node,
@@ -408,7 +456,7 @@ bool _isAResourceType(PropertyNode node, ElementDefinition? element) =>
 
 ElementDefinition? _polymorphicElement(
     String path, List<ElementDefinition> elements) {
-  return elements.firstWhereOrNull((element) =>
+  return elements.firstWhereOrNull((ElementDefinition element) =>
       element.path != null &&
       element.path!.endsWith('[x]') &&
       path.startsWith(element.path!.replaceFirst('[x]', '')));
@@ -416,6 +464,7 @@ ElementDefinition? _polymorphicElement(
 
 ElementDefinition? _findElementDefinition(
     String path, List<ElementDefinition> elements) {
-  return elements.firstWhereOrNull((element) => element.path == path) ??
+  return elements.firstWhereOrNull(
+          (ElementDefinition element) => element.path == path) ??
       _polymorphicElement(path, elements);
 }

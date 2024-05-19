@@ -12,11 +12,11 @@ Future<ValidationResults> validateCardinality(
   ValidationResults results,
   Client? client,
 ) async {
-  final currentPath = cleanLocalPath(originalPath, replacePath, node.path);
-  final missingPaths = <String>[];
+  final String currentPath = cleanLocalPath(originalPath, replacePath, node.path);
+  final List<String> missingPaths = <String>[];
 
-  for (final element in elements) {
-    final path = element.path;
+  for (final ElementDefinition element in elements) {
+    final String? path = element.path;
     if (path != null) {
       if (!_isPathAlreadyChecked(missingPaths, path)) {
         Node? foundNode = _findNodeRecursively(node, originalPath, replacePath,
@@ -48,7 +48,7 @@ Future<ValidationResults> validateCardinality(
 }
 
 bool _isPathAlreadyChecked(List<String> missingPaths, String path) {
-  return missingPaths.indexWhere((element) => path.startsWith(element)) != -1;
+  return missingPaths.indexWhere((String element) => path.startsWith(element)) != -1;
 }
 
 Future<ValidationResults> _validateElementCardinality({
@@ -73,7 +73,7 @@ Future<ValidationResults> _validateElementCardinality({
   } else if (foundNode != null) {
     // Check for too many occurrences of an element
     if (element.max != null && element.max != '*') {
-      final max = int.tryParse(element.max!);
+      final int? max = int.tryParse(element.max!);
       if (max != null &&
           foundNode is ArrayNode &&
           foundNode.children.length > max) {
@@ -124,14 +124,14 @@ Future<ValidationResults> _validateNestedElements({
   required Client? client,
 }) async {
   if (element.type != null && element.type!.isNotEmpty) {
-    final typeCode = findCode(element, foundNode.path);
+    final String? typeCode = findCode(element, foundNode.path);
     if (typeCode != null && !isPrimitiveType(typeCode)) {
-      final structureDefinitionMap =
+      final Map<String, dynamic>? structureDefinitionMap =
           await getStructureDefinition(typeCode, client);
       if (structureDefinitionMap != null) {
-        final structureDefinition =
+        final StructureDefinition structureDefinition =
             StructureDefinition.fromJson(structureDefinitionMap);
-        final newElements = extractElements(structureDefinition);
+        final List<ElementDefinition> newElements = extractElements(structureDefinition);
         if (foundNode is ObjectNode) {
           results = await validateCardinality(
             structureDefinition.getUrl(),
@@ -151,30 +151,30 @@ Future<ValidationResults> _validateNestedElements({
 
 Node? _findNodeRecursively(
     Node node, String originalPath, String replacePath, String targetPath) {
-  final cleanedNodePath = cleanLocalPath(originalPath, replacePath, node.path);
+  final String cleanedNodePath = cleanLocalPath(originalPath, replacePath, node.path);
 
   if (cleanedNodePath == targetPath) {
     return node;
   }
 
   if (node is ObjectNode) {
-    for (var property in node.children) {
-      final foundNode =
+    for (PropertyNode property in node.children) {
+      final Node? foundNode =
           _findNodeRecursively(property, originalPath, replacePath, targetPath);
       if (foundNode != null) {
         return foundNode;
       }
     }
   } else if (node is ArrayNode) {
-    for (var child in node.children) {
-      final foundNode =
+    for (Node child in node.children) {
+      final Node? foundNode =
           _findNodeRecursively(child, originalPath, replacePath, targetPath);
       if (foundNode != null) {
         return foundNode;
       }
     }
   } else if (node is PropertyNode && node.value != null) {
-    final foundNode = _findNodeRecursively(
+    final Node? foundNode = _findNodeRecursively(
         node.value!, originalPath, replacePath, targetPath);
     if (foundNode != null) {
       return foundNode;
@@ -193,7 +193,7 @@ Node? _checkForPolymorphism(
 ) {
   if (_isAPolymorphicElement(element)) {
     return node.children.firstWhereOrNull(
-      (child) =>
+      (PropertyNode child) =>
           cleanLocalPath(originalPath, replacePath, child.path)
               .replaceFirst('[x]', '') ==
           currentPath,
