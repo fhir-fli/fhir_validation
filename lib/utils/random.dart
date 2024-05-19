@@ -1,7 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:fhir_r4/fhir_r4.dart';
 import 'package:http/http.dart';
-
 import '../fhir_validation.dart';
 
 String? findCode(ElementDefinition element, String path) {

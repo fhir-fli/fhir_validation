@@ -18,9 +18,7 @@ Future<ValidationResults> validateCardinality(
   for (final element in elements) {
     final path = element.path;
     if (path != null) {
-      final index =
-          missingPaths.indexWhere((element) => path.startsWith(element));
-      if (index == -1) {
+      if (!_isPathAlreadyChecked(missingPaths, path)) {
         Node? foundNode = _findNodeRecursively(node, originalPath, replacePath,
                 cleanLocalPath(originalPath, replacePath, path)) ??
             _checkForPolymorphism(
@@ -30,65 +28,18 @@ Future<ValidationResults> validateCardinality(
           missingPaths.add(path);
         }
 
-        // Check for missing required elements
-        if (element.min != null && element.min! > 0 && foundNode == null) {
-          results.addMissingResult(
-            path,
-            '$path: minimum required = ${element.min}, but only found 0 '
-            '${url == null ? '' : '(from $url)'}',
-            Severity.error,
-          );
-        } else if (foundNode != null) {
-          // Check for too many occurrences of an element
-          if (element.max != null && element.max != '*') {
-            final max = int.tryParse(element.max!);
-            if (max != null &&
-                foundNode is ArrayNode &&
-                foundNode.children.length > max) {
-              results.addResult(
-                node,
-                'Too many elements for: $path. Maximum allowed is $max.',
-                Severity.error,
-              );
-            }
-          }
-
-          // Check if the required element is populated
-          if (element.min != null && element.min! > 0) {
-            if ((foundNode is LiteralNode && foundNode.value == null) ||
-                (foundNode is ObjectNode && foundNode.children.isEmpty) ||
-                (foundNode is PropertyNode && foundNode.value == null)) {
-              results.addResult(
-                node,
-                'Required element is not populated: $path',
-                Severity.error,
-              );
-            }
-          } else {
-            // Recursively check nested elements if not a primitive type
-            if (element.type != null && element.type!.isNotEmpty) {
-              final typeCode = findCode(element, foundNode.path);
-              if (typeCode != null && !isPrimitiveType(typeCode)) {
-                final structureDefinition =
-                    await getStructureDefinition(typeCode, client);
-                if (structureDefinition != null) {
-                  final newElements = extractElements(
-                      StructureDefinition.fromJson(structureDefinition));
-                  if (foundNode is ObjectNode) {
-                    results = await validateCardinality(
-                        url,
-                        foundNode,
-                        originalPath,
-                        replacePath,
-                        newElements,
-                        results,
-                        client);
-                  }
-                }
-              }
-            }
-          }
-        }
+        results = await _validateElementCardinality(
+          url: url,
+          node: node,
+          element: element,
+          foundNode: foundNode,
+          path: path,
+          originalPath: originalPath,
+          replacePath: replacePath,
+          elements: elements,
+          results: results,
+          client: client,
+        );
       }
     }
   }
@@ -96,16 +47,116 @@ Future<ValidationResults> validateCardinality(
   return results;
 }
 
+bool _isPathAlreadyChecked(List<String> missingPaths, String path) {
+  return missingPaths.indexWhere((element) => path.startsWith(element)) != -1;
+}
+
+Future<ValidationResults> _validateElementCardinality({
+  required String? url,
+  required ObjectNode node,
+  required ElementDefinition element,
+  required Node? foundNode,
+  required String path,
+  required String originalPath,
+  required String replacePath,
+  required List<ElementDefinition> elements,
+  required ValidationResults results,
+  required Client? client,
+}) async {
+  // Check for missing required elements
+  if (element.min != null && element.min! > 0 && foundNode == null) {
+    results.addMissingResult(
+      path,
+      '$path: minimum required = ${element.min}, but only found 0 ${url == null ? '' : '(from $url)'}',
+      Severity.error,
+    );
+  } else if (foundNode != null) {
+    // Check for too many occurrences of an element
+    if (element.max != null && element.max != '*') {
+      final max = int.tryParse(element.max!);
+      if (max != null &&
+          foundNode is ArrayNode &&
+          foundNode.children.length > max) {
+        results.addResult(
+          node,
+          'Too many elements for: $path. Maximum allowed is $max.',
+          Severity.error,
+        );
+      }
+    }
+
+    // Check if the required element is populated
+    if (element.min != null && element.min! > 0) {
+      if (!_isNodePopulated(foundNode)) {
+        results.addResult(
+          node,
+          'Required element is not populated: $path',
+          Severity.error,
+        );
+      }
+    } else {
+      // Recursively check nested elements if not a primitive type
+      results = await _validateNestedElements(
+        element: element,
+        foundNode: foundNode,
+        originalPath: originalPath,
+        replacePath: replacePath,
+        results: results,
+        client: client,
+      );
+    }
+  }
+  return results;
+}
+
+bool _isNodePopulated(Node foundNode) {
+  return !(foundNode is LiteralNode && foundNode.value == null) &&
+      !(foundNode is ObjectNode && foundNode.children.isEmpty) &&
+      !(foundNode is PropertyNode && foundNode.value == null);
+}
+
+Future<ValidationResults> _validateNestedElements({
+  required ElementDefinition element,
+  required Node foundNode,
+  required String originalPath,
+  required String replacePath,
+  required ValidationResults results,
+  required Client? client,
+}) async {
+  if (element.type != null && element.type!.isNotEmpty) {
+    final typeCode = findCode(element, foundNode.path);
+    if (typeCode != null && !isPrimitiveType(typeCode)) {
+      final structureDefinitionMap =
+          await getStructureDefinition(typeCode, client);
+      if (structureDefinitionMap != null) {
+        final structureDefinition =
+            StructureDefinition.fromJson(structureDefinitionMap);
+        final newElements = extractElements(structureDefinition);
+        if (foundNode is ObjectNode) {
+          results = await validateCardinality(
+            structureDefinition.getUrl(),
+            foundNode,
+            originalPath,
+            replacePath,
+            newElements,
+            results,
+            client,
+          );
+        }
+      }
+    }
+  }
+  return results;
+}
+
 Node? _findNodeRecursively(
     Node node, String originalPath, String replacePath, String targetPath) {
   final cleanedNodePath = cleanLocalPath(originalPath, replacePath, node.path);
 
-  // Check if the current node matches the target path
   if (cleanedNodePath == targetPath) {
     return node;
   }
 
-  // If the node has children, recursively search them
   if (node is ObjectNode) {
     for (var property in node.children) {
       final foundNode =
@@ -122,22 +173,24 @@ Node? _findNodeRecursively(
         return foundNode;
       }
     }
-  } else if (node is PropertyNode) {
-    if (node.value != null) {
-      final foundNode = _findNodeRecursively(
-          node.value!, originalPath, replacePath, targetPath);
-      if (foundNode != null) {
-        return foundNode;
-      }
+  } else if (node is PropertyNode && node.value != null) {
+    final foundNode = _findNodeRecursively(
+        node.value!, originalPath, replacePath, targetPath);
+    if (foundNode != null) {
+      return foundNode;
     }
   }
 
-  // No matching node found
   return null;
 }
 
-Node? _checkForPolymorphism(ObjectNode node, ElementDefinition element,
-    String currentPath, String originalPath, String replacePath) {
+Node? _checkForPolymorphism(
+  ObjectNode node,
+  ElementDefinition element,
+  String currentPath,
+  String originalPath,
+  String replacePath,
+) {
   if (_isAPolymorphicElement(element)) {
     return node.children.firstWhereOrNull(
       (child) =>

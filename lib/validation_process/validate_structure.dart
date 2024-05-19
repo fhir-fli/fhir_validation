@@ -9,15 +9,11 @@ Future<ValidationResults> validateStructure({
   required String type,
   Client? client,
 }) async {
-  var results = ValidationResults();
-
   if (node is! ObjectNode) {
     throw Exception('Root node must be an ObjectNode');
   }
-
-  results = await _objectNode(node, type, type, elements, results, client);
-
-  return results;
+  return await _objectNode(
+      node, type, type, elements, ValidationResults(), client);
 }
 
 Future<ValidationResults> _traverseAst(
@@ -96,14 +92,11 @@ Future<ValidationResults> _propertyNode(
   Client? client,
 ) async {
   final cleanPath = cleanLocalPath(originalPath, replacePath, node.path);
-  ElementDefinition? element =
-      elements.firstWhereOrNull((element) => element.path == cleanPath);
+  ElementDefinition? element = _findElementDefinition(cleanPath, elements);
 
   if (_isAResourceType(node, element)) {
     return results;
   }
-
-  element ??= _polymorphicElement(cleanPath, elements);
 
   if (element != null) {
     return await _withElement(
@@ -119,13 +112,14 @@ Future<ValidationResults> _propertyNode(
 }
 
 Future<ValidationResults> _withElement(
-    PropertyNode node,
-    ElementDefinition element,
-    String originalPath,
-    String replacePath,
-    List<ElementDefinition> elements,
-    ValidationResults results,
-    Client? client) async {
+  PropertyNode node,
+  ElementDefinition element,
+  String originalPath,
+  String replacePath,
+  List<ElementDefinition> elements,
+  ValidationResults results,
+  Client? client,
+) async {
   final String? code = findCode(element, node.path);
   if (code != null) {
     return await _withCode(code, node, element, originalPath, replacePath,
@@ -337,14 +331,12 @@ ValidationResults _checkRangeConstraints(
   }
 
   final maxValue = _maximumValueConstraint(element);
-  if (maxValue != null) {
-    if (maxValue != null && _compareValues(value, maxValue) > 0) {
-      results.addResult(
-        node,
-        'Value "$value" is greater than the maximum allowed value: $maxValue',
-        Severity.error,
-      );
-    }
+  if (maxValue != null && _compareValues(value, maxValue) > 0) {
+    results.addResult(
+      node,
+      'Value "$value" is greater than the maximum allowed value: $maxValue',
+      Severity.error,
+    );
   }
 
   return results;
@@ -420,4 +412,10 @@ ElementDefinition? _polymorphicElement(
       element.path != null &&
       element.path!.endsWith('[x]') &&
       path.startsWith(element.path!.replaceFirst('[x]', '')));
+}
+
+ElementDefinition? _findElementDefinition(
+    String path, List<ElementDefinition> elements) {
+  return elements.firstWhereOrNull((element) => element.path == path) ??
+      _polymorphicElement(path, elements);
 }
