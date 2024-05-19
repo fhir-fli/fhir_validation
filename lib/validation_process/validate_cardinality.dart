@@ -12,7 +12,8 @@ Future<ValidationResults> validateCardinality(
   ValidationResults results,
   Client? client,
 ) async {
-  final String currentPath = cleanLocalPath(originalPath, replacePath, node.path);
+  final String currentPath =
+      cleanLocalPath(originalPath, replacePath, node.path);
   final List<String> missingPaths = <String>[];
 
   for (final ElementDefinition element in elements) {
@@ -48,7 +49,9 @@ Future<ValidationResults> validateCardinality(
 }
 
 bool _isPathAlreadyChecked(List<String> missingPaths, String path) {
-  return missingPaths.indexWhere((String element) => path.startsWith(element)) != -1;
+  return missingPaths
+          .indexWhere((String element) => path.startsWith(element)) !=
+      -1;
 }
 
 Future<ValidationResults> _validateElementCardinality({
@@ -127,11 +130,13 @@ Future<ValidationResults> _validateNestedElements({
     final String? typeCode = findCode(element, foundNode.path);
     if (typeCode != null && !isPrimitiveType(typeCode)) {
       final Map<String, dynamic>? structureDefinitionMap =
-          await getStructureDefinition(typeCode, client);
-      if (structureDefinitionMap != null) {
+          await getResource(typeCode, client);
+      if (structureDefinitionMap != null &&
+          structureDefinitionMap['resourceType'] == 'StructureDefinition') {
         final StructureDefinition structureDefinition =
             StructureDefinition.fromJson(structureDefinitionMap);
-        final List<ElementDefinition> newElements = extractElements(structureDefinition);
+        final List<ElementDefinition> newElements =
+            extractElements(structureDefinition);
         if (foundNode is ObjectNode) {
           results = await validateCardinality(
             structureDefinition.getUrl(),
@@ -151,7 +156,8 @@ Future<ValidationResults> _validateNestedElements({
 
 Node? _findNodeRecursively(
     Node node, String originalPath, String replacePath, String targetPath) {
-  final String cleanedNodePath = cleanLocalPath(originalPath, replacePath, node.path);
+  final String cleanedNodePath =
+      cleanLocalPath(originalPath, replacePath, node.path);
 
   if (cleanedNodePath == targetPath) {
     return node;

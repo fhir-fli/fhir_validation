@@ -53,7 +53,7 @@ extension GetUrl on StructureDefinition {
 Future<Set<String>> getValueSetCodes(String valueSetUrl, Client? client) async {
   // Fetch the initial value set or code system from the URL
   final Map<String, dynamic>? resourceJson =
-      await getAnyResource(valueSetUrl, client);
+      await getResource(valueSetUrl, client);
   if (resourceJson == null) {
     throw Exception('Resource not found at $valueSetUrl');
   }
@@ -120,7 +120,7 @@ Future<Set<String>> _fetchIncludedValueSetCodes(
     String includedValueSetUrl, Client? client) async {
   // Fetch the included ValueSet or CodeSystem
   final Map<String, dynamic>? resourceJson =
-      await getAnyResource(includedValueSetUrl, client);
+      await getResource(includedValueSetUrl, client);
   if (resourceJson == null) {
     return <String>{};
   }

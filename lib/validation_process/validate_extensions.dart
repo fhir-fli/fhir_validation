@@ -17,9 +17,10 @@ Future<ValidationResults> validateExtensions(
           .profile
           ?.first;
       final Map<String, dynamic>? extensionDefinition =
-          await getStructureDefinition(extensionUrl.toString(), client);
+          await getResource(extensionUrl.toString(), client);
       final StructureDefinition? structureDefinition =
-          extensionDefinition != null
+          extensionDefinition != null &&
+                  extensionDefinition['resourceType'] == 'StructureDefinition'
               ? StructureDefinition.fromJson(extensionDefinition)
               : null;
       if (structureDefinition != null) {

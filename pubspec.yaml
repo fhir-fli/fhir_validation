@@ -16,6 +16,8 @@ dependencies:
     path: ../fhir_stu3
   fhir_r4:
     path: ../fhir_r4
+  fhir_r4_resources:
+    path: ../fhir_r4_resources
   fhir_r5:
     path: ../fhir_r5
   collection: ^1.18.0

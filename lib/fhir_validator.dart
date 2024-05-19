@@ -87,8 +87,7 @@ class FhirValidator {
 
     // So we don't have profiles or a StructureDefinition, so we just go with
     // a generic StructureDefinition
-    final Map<String, dynamic>? definitionMap =
-        await getStructureDefinition(type, client);
+    final Map<String, dynamic>? definitionMap = await getResource(type, client);
     if (definitionMap == null) {
       // If no structure definition is found, return an error
       return results
@@ -97,7 +96,7 @@ class FhirValidator {
           'No StructureDefinition was found for this Resource, which is a resourceType of: $type',
           Severity.error,
         );
-    } else {
+    } else if (definitionMap['resourceType'] == 'OperationOutcome') {
       // Parse the structure definition from JSON
       structureDefinition = StructureDefinition.fromJson(definitionMap);
       return results
@@ -110,6 +109,13 @@ class FhirValidator {
             node,
             client,
           ),
+        );
+    } else {
+      return results
+        ..addResult(
+          null,
+          'The StructureDefinition for this Resource is not a StructureDefinition, which is a resourceType of: $type',
+          Severity.error,
         );
     }
   }
@@ -167,7 +173,7 @@ class FhirValidator {
       for (LiteralNode profile in profileNodes) {
         try {
           final Map<String, dynamic>? profileDef =
-              await getProfile(profile.value as String, client);
+              await getResource(profile.value as String, client);
           if (profileDef != null) {
             profiles.add(profileDef);
           }

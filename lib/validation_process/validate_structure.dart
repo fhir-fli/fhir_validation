@@ -143,8 +143,9 @@ Future<ValidationResults> _withoutCode(
     final String? url = ext.url?.toString();
     if (url != null) {
       final Map<String, dynamic>? structureDefinition =
-          await getStructureDefinition(url, client);
-      if (structureDefinition != null) {
+          await getResource(url, client);
+      if (structureDefinition != null &&
+          structureDefinition['resourceType'] == 'StructureDefinition') {
         final List<ElementDefinition> newElements =
             extractElements(StructureDefinition.fromJson(structureDefinition));
         return await _traverseAst(
@@ -190,9 +191,10 @@ Future<ValidationResults> _codeIsComplexType(
   Client? client,
 ) async {
   final Map<String, dynamic>? structureDefinitionMap =
-      await getStructureDefinition(code, client);
+      await getResource(code, client);
   final StructureDefinition? structureDefinition =
-      structureDefinitionMap != null
+      structureDefinitionMap != null &&
+              structureDefinitionMap['resourceType'] == 'StructureDefinition'
           ? StructureDefinition.fromJson(structureDefinitionMap)
           : null;
   if (structureDefinition == null) {

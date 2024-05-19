@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fhir_r4/fhir_r4.dart';
 
-import 'package:fhir_validation/systems/resource_cache.dart';
+import 'package:fhir_validation/utils/resource_cache.dart';
 import '../fhir_validation.dart';
 import 'test1/test.dart' as test1;
 
