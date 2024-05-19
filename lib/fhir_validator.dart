@@ -128,11 +128,13 @@ class FhirValidator {
     Node node,
     Client? client,
   ) async {
+    final String? url = structureDefinition.getUrl();
     ValidationResults results = ValidationResults();
     final List<ElementDefinition> elements =
         extractElements(structureDefinition);
 
     results = await validateStructure(
+      url: url,
       node: node,
       elements: elements,
       type: type,
@@ -158,6 +160,24 @@ class FhirValidator {
 
     // Validate Extensions
     results = await validateExtensions(node, elements, results, client);
+
+    results = await validateInvariants(
+      url: url,
+      node: node,
+      elements: elements,
+      results: results,
+      client: client,
+    );
+
+    if (type == 'QuestionnaireResponse' &&
+        mapToValidate['resourceType'] == 'QuestionnaireResponse') {
+      final QuestionnaireResponse questionnaireResponse =
+          QuestionnaireResponse.fromJson(mapToValidate);
+      results = await validateQuestionnaireResponse(
+        questionnaireResponse: questionnaireResponse,
+        client: client,
+      );
+    }
 
     return results;
   }

@@ -54,3 +54,4 @@ dev_dependencies:
 flutter:
   assets:
     - lib/test/test1/
+    - lib/test/test2/

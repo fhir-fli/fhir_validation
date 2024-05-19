@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fhir_r4/fhir_r4.dart';
 
-import 'package:fhir_validation/utils/resource_cache.dart';
 import '../fhir_validation.dart';
 import 'test1/test.dart' as test1;
+import 'test2/test.dart' as test2;
 
 Future<void> fhirValidationTest() async {
   // Singleton cache instance
@@ -40,17 +40,25 @@ Future<void> fhirValidationTest() async {
 
   final FhirValidator validator = FhirValidator();
   // group('FHIR Mapping', () {
-  // test('Test1', () async {
-  final Resource resource = await test1.resource();
-  final List<Resource> supportResources = await test1.supportResources();
-  for (final Resource resource in supportResources) {
-    saveResource(resource);
-  }
-  final ValidationResults result =
-      await validator.validateFhirResource(resourceToValidate: resource);
-  print(result.prettyPrint());
-  // });
+  test('Test1', () async {
+    final Resource resource = await test1.resource();
+    final List<Resource> supportResources = await test1.supportResources();
+    for (final Resource resource in supportResources) {
+      saveResource(resource);
+    }
+    final ValidationResults result =
+        await validator.validateFhirResource(resourceToValidate: resource);
+    expect(result.toOperationOutcome(), await test1.response());
+  });
+  test('Test2', () async {
+    final Resource resource = await test2.resource();
+    final List<Resource> supportResources = await test2.supportResources();
+    for (final Resource resource in supportResources) {
+      saveResource(resource);
+    }
+    final ValidationResults result =
+        await validator.validateFhirResource(resourceToValidate: resource);
+    expect(result.toOperationOutcome(), await test2.response());
+  });
   // });
 }
-
-void test(String s, Future<Null> Function() param1) {}

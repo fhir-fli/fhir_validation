@@ -70,7 +70,8 @@ Future<ValidationResults> _validateElementCardinality({
   if (element.min != null && element.min! > 0 && foundNode == null) {
     results.addMissingResult(
       path,
-      '$path: minimum required = ${element.min}, but only found 0 ${url == null ? '' : '(from $url)'}',
+      withUrlIfExists(
+          '$path: minimum required = ${element.min}, but only found 0', url),
       Severity.error,
     );
   } else if (foundNode != null) {
@@ -82,7 +83,8 @@ Future<ValidationResults> _validateElementCardinality({
           foundNode.children.length > max) {
         results.addResult(
           node,
-          'Too many elements for: $path. Maximum allowed is $max.',
+          withUrlIfExists(
+              'Too many elements for: $path. Maximum allowed is $max.', url),
           Severity.error,
         );
       }
@@ -93,7 +95,7 @@ Future<ValidationResults> _validateElementCardinality({
       if (!_isNodePopulated(foundNode)) {
         results.addResult(
           node,
-          'Required element is not populated: $path',
+          withUrlIfExists('Required element is not populated: $path', url),
           Severity.error,
         );
       }

@@ -179,3 +179,7 @@ Set<String> _extractCodesFromConcept(CodeSystemConcept concept) {
   }
   return codes;
 }
+
+String withUrlIfExists(String string, String? url) {
+  return url != null ? '$string (from $url)' : string;
+}
