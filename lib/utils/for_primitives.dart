@@ -22,7 +22,8 @@ bool isPrimitiveType(String type) => (<String>[
       'unsignedint',
       'uuid',
       'string',
-      'http://hl7.org/fhirpath/system.string'
+      'http://hl7.org/fhirpath/system.string',
+      'backboneelement',
     ].contains(type.toLowerCase()));
 
 bool isComparablePrimitive(String type) => (<String>[

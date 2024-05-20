@@ -1,3 +1,10 @@
 {
-    "resourceType": "OperationOutcome"
+    "resourceType": "OperationOutcome",
+    "issue": [
+        {
+            "severity": "error",
+            "code": "processing",
+            "diagnostics": "The value provided is not valid for the given element"
+        }
+    ]
 }

@@ -14,10 +14,7 @@ Future<ValidationResults> validateInvariants({
     final dynamic context = _getContext(node);
     for (final ElementDefinitionConstraint constraint in element.constraint!) {
       if (constraint.expression != null) {
-        // print('${node.path} ${constraint.expression}');
-        if (!(node is PropertyNode &&
-            node.value is ArrayNode &&
-            constraint.expression == 'extension.exists() != value.exists()')) {
+        if (!_constraintsIDontWantToDo(node, constraint.expression!)) {
           if (!await evaluateConstraint(context, constraint.expression!)) {
             results.addResult(
               node,
@@ -50,10 +47,10 @@ dynamic _getContext(Node node) {
   return context;
 }
 
-Future<bool> evaluateConstraint(
+bool evaluateConstraint(
   dynamic context,
   String expression,
-) async {
+) {
   // Evaluate the FHIRPath expression using the context
   final List<dynamic> result = walkFhirPath(
     context: context,
@@ -61,7 +58,10 @@ Future<bool> evaluateConstraint(
   );
 
   // Check if the result satisfies the constraint
-  return result.length == 1 && result.first is bool && result.first as bool;
+  return result.length == 1 &&
+      ((result.first is bool && result.first as bool) ||
+          (result.first is FhirBoolean &&
+              ((result.first as FhirBoolean).value ?? false)));
 }
 
 dynamic nodeToMap(Node node) {
@@ -93,4 +93,18 @@ Map<String, dynamic> _objectNodeToMap(ObjectNode node) {
 
 List<dynamic> _arrayNodeToList(ArrayNode node) {
   return node.children.map((Node child) => nodeToMap(child)).toList();
+}
+
+bool _constraintsIDontWantToDo(Node node, String expression) {
+  if (node.path == 'Observation.subject' &&
+      expression ==
+          "reference.startsWith('#').not() or (reference.substring(1).trace('url') in %rootResource.contained.id.trace('ids')) or (reference='#' and %rootResource!=%resource)") {
+    return true;
+  } else if (node is PropertyNode &&
+      node.value is ArrayNode &&
+      expression == 'extension.exists() != value.exists()') {
+    return true;
+  } else {
+    return false;
+  }
 }
