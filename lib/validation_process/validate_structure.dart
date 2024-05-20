@@ -322,6 +322,7 @@ Future<ValidationResults> _checkEnumerations(
     // Get the allowed codes from the value set
     final Set<String> allowedCodes =
         await getValueSetCodes(element.binding!.valueSet.toString(), client);
+    print('ALLoWEDcodes: $allowedCodes');
     if (!allowedCodes.contains(value)) {
       results.addResult(
         node,

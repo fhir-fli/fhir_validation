@@ -11,12 +11,17 @@ Future<ValidationResults> validateBindings({
   for (ElementDefinition element in elements) {
     if (element.binding != null && element.binding!.valueSet != null) {
       final String valueSetUrl = element.binding!.valueSet.toString();
+      print('Validating $valueSetUrl');
       final Set<String> validCodes =
           await getValueSetCodes(valueSetUrl, client);
+      print('Valid codes: $validCodes');
 
       final String? elementPath = element.path;
+      print('Element path: $elementPath ${node.path}');
+      (node as ObjectNode).getPropertyNode(element.path ?? '');
       if (elementPath != null) {
         final Node? targetNode = _findNodeByPath(node, elementPath);
+        print('Target node: ${targetNode?.path}');
         if (targetNode != null) {
           results = await _validateNodeAgainstValueSet(
             targetNode,
