@@ -1,5 +1,6 @@
 import 'package:fhir_r4/fhir_r4.dart';
-import 'package:fhir_r4_resources/resources.dart';
+
+import '../resources/resources.dart';
 
 class ResourceCache {
   // Static variable that holds the single instance of ResourceCache
