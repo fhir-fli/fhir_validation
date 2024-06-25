@@ -26,7 +26,10 @@ class ResourceCache {
 
   // Method to retrieve a resource from the cache
   Map<String, dynamic>? get(String url) {
-    return _cache[url];
+    return _cache[url] ??
+        (!url.contains('http')
+            ? _cache['http://hl7.org/fhir/StructureDefinition/$url']
+            : null);
   }
 
   // Method to add a resource to the cache
