@@ -9,7 +9,7 @@ environment:
 
 dependencies:
   antlr4: ^4.13.1
-  # fhir_primitives: ^0.1.0
+  # fhir_primitives: ^0.1.2
   fhir_primitives:
     path: ../fhir_primitives
   fhir_r4:
