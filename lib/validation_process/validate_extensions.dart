@@ -26,7 +26,8 @@ Future<ValidationResults> validateExtensions(
       if (structureDefinition != null) {
         final List<ElementDefinition> extensionElements =
             extractElements(structureDefinition);
-        final Node? extensionNode = node.getPropertyNode('_' + element.path!);
+        final Node? extensionNode =
+            node.getPropertyNode('_' + element.path.value!);
         if (extensionNode != null) {
           results = await validateStructure(
             node: extensionNode,

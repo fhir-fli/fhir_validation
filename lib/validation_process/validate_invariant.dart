@@ -14,8 +14,9 @@ Future<ValidationResults> validateInvariants({
     final dynamic context = _getContext(node);
     for (final ElementDefinitionConstraint constraint in element.constraint!) {
       if (constraint.expression != null) {
-        if (!_constraintsIDontWantToDo(node, constraint.expression!)) {
-          if (!await evaluateConstraint(context, constraint.expression!)) {
+        if (!_constraintsIDontWantToDo(node, constraint.expression!.value!)) {
+          if (!await evaluateConstraint(
+              context, constraint.expression!.value!)) {
             results.addResult(
               node,
               withUrlIfExists('Invariant violation: ${constraint.human}', url),

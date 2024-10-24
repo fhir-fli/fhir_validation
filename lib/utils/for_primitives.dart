@@ -1,4 +1,4 @@
-import 'package:fhir_primitives/fhir_primitives.dart';
+import 'package:fhir_r4/fhir_r4.dart';
 
 bool isPrimitiveType(String type) => (<String>[
       'base64binary',
@@ -94,51 +94,62 @@ bool isValueAValidPrimitive(String primitiveClass, dynamic value) {
   try {
     switch (primitiveClass) {
       case 'base64binary':
-        return FhirBase64Binary.fromJson(value).isValid;
+        FhirBase64Binary.fromJson(value);
       case 'boolean':
-        return FhirBoolean.fromJson(value).isValid;
+        FhirBoolean.fromJson(value);
       case 'canonical':
-        return FhirCanonical.fromJson(value).isValid;
+        FhirCanonical.fromJson(value);
       case 'code':
-        return FhirCode.fromJson(value).isValid;
+        FhirCode.fromJson(value);
       case 'date':
-        return value is String ? FhirDate.fromJson(value).isValid : false;
+        if (value is String) {
+          FhirDate.fromString(value);
+        } else {
+          return false;
+        }
       case 'decimal':
-        return FhirDecimal.fromJson(value).isValid;
+        FhirDecimal.fromJson(value);
       case 'datetime':
-        return value is String ? FhirDateTime.fromJson(value).isValid : false;
+        if (value is String) {
+          FhirDateTime.fromString(value);
+        } else {
+          return false;
+        }
       case 'uri':
-        return FhirUri.fromJson(value).isValid;
+        FhirUri.fromJson(value);
       case 'url':
-        return FhirUrl.fromJson(value).isValid;
+        FhirUrl.fromJson(value);
       case 'id':
-        return FhirId.fromJson(value).isValid;
+        FhirId.fromJson(value);
       case 'instant':
-        return value is String ? FhirInstant.fromJson(value).isValid : false;
+        if (value is String) {
+          FhirInstant.fromString(value);
+        } else {
+          return false;
+        }
       case 'integer':
-        return FhirInteger.fromJson(value).isValid;
+        FhirInteger.fromJson(value);
       case 'integer64':
-        return FhirInteger64.fromJson(value).isValid;
+        FhirInteger64.fromJson(value);
       case 'markdown':
-        return FhirMarkdown.fromJson(value).isValid;
+        FhirMarkdown.fromJson(value);
       case 'xhtml':
-        return FhirMarkdown.fromJson(value).isValid;
+        FhirMarkdown.fromJson(value);
       case 'oid':
-        return FhirOid.fromJson(value).isValid;
+        FhirOid.fromJson(value);
       case 'positiveint':
-        return FhirPositiveInt.fromJson(value).isValid;
+        FhirPositiveInt.fromJson(value);
       case 'time':
-        return FhirTime.fromJson(value).isValid;
+        FhirTime.fromJson(value);
       case 'unsignedint':
-        return FhirUnsignedInt.fromJson(value).isValid;
+        FhirUnsignedInt.fromJson(value);
       case 'uuid':
-        return FhirUuid.fromJson(value).isValid;
+        FhirUuid.fromJson(value);
       case 'http://hl7.org/fhirpath/system.string':
       case 'string':
         return value is String;
-      default:
-        return false;
     }
+    return true;
   } catch (e) {
     return false;
   }

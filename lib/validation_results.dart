@@ -73,33 +73,35 @@ class ValidationResults {
 
   OperationOutcomeIssue _makeOperationOutcomeIssue(ValidationDiagnostics e) =>
       OperationOutcomeIssue(
-          severity: FhirCode(e.severity.toString()),
-          code: FhirCode('processing'),
-          diagnostics: e.diagnostics,
+          severity: IssueSeverity.fromJson({'value': e.severity.toJson()}),
+          code: IssueType.processing,
+          diagnostics: e.diagnostics.toFhirString,
           extension_: e.line == null && e.column == null
               ? null
               : <FhirExtension>[
                   if (e.line != null)
                     FhirExtension(
-                      url: FhirUri(
+                      url: FhirString(
                           'http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line'),
                       valueInteger:
                           e.line == null ? null : FhirInteger(e.line!),
                     ),
                   if (e.column != null)
                     FhirExtension(
-                      url: FhirUri(
+                      url: FhirString(
                           'http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col'),
                       valueInteger:
                           e.column == null ? null : FhirInteger(e.column!),
                     ),
                 ],
-          location: <String>[
-            e.path,
+          location: <FhirString>[
+            e.path.toFhirString,
             if (e.line != null && e.column != null)
-              'Line[${e.line}] Column[${e.column}]',
-            if (e.line != null && e.column == null) 'Line[${e.line}]',
-            if (e.line == null && e.column != null) 'Column[${e.column}]',
+              'Line[${e.line}] Column[${e.column}]'.toFhirString,
+            if (e.line != null && e.column == null)
+              'Line[${e.line}]'.toFhirString,
+            if (e.line == null && e.column != null)
+              'Column[${e.column}]'.toFhirString,
           ]);
 
   OperationOutcome toOperationOutcome() {
@@ -272,7 +274,5 @@ enum Severity {
     }
   }
 
-  static String toJson(Severity severity) {
-    return severity.toString();
-  }
+  String toJson() => toString();
 }

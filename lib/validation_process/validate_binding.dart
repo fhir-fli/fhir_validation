@@ -13,8 +13,8 @@ Future<ValidationResults> validateBindings({
       final String valueSetUrl = element.binding!.valueSet.toString();
       final Set<String> validCodes =
           await getValueSetCodes(valueSetUrl, client);
-      final String? elementPath = element.path;
-      (node as ObjectNode).getPropertyNode(element.path ?? '');
+      final String? elementPath = element.path.value;
+      (node as ObjectNode).getPropertyNode(element.path.value ?? '');
       if (elementPath != null) {
         final Node? targetNode = _findNodeByPath(node, elementPath);
         if (targetNode != null) {
@@ -36,7 +36,7 @@ Future<ValidationResults> _validateNodeAgainstValueSet(
   Node node,
   Set<String> validCodes,
   ValidationResults results,
-  ElementDefinitionBindingStrength? strength,
+  BindingStrength? strength,
   String valueSetUrl,
 ) async {
   if (node is ObjectNode) {
@@ -55,7 +55,7 @@ Future<ValidationResults> _validateNodeAgainstValueSet(
       results.addResult(
         node,
         'Code "$code" is not valid according to ValueSet $valueSetUrl',
-        strength == ElementDefinitionBindingStrength.required_
+        strength == BindingStrength.required_
             ? Severity.error
             : Severity.warning,
       );

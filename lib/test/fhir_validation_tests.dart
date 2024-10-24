@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fhir_r4/fhir_r4.dart';
 
 import '../fhir_validation.dart';
-import 'test1/test.dart' as test1;
 import 'test2/test.dart' as test2;
 
 Future<void> fhirValidationTest() async {
@@ -11,9 +10,7 @@ Future<void> fhirValidationTest() async {
   void saveResource(Resource resource) {
     switch (resource) {
       case StructureDefinition _:
-        if (resource.url != null) {
-          resourceCache.set(resource.url!.toString(), resource.toJson());
-        }
+        resourceCache.set(resource.url.toString(), resource.toJson());
         break;
       case ValueSet _:
         if (resource.url != null) {
@@ -27,8 +24,8 @@ Future<void> fhirValidationTest() async {
         break;
       case NamingSystem _:
         for (final NamingSystemUniqueId uniqueId in resource.uniqueId) {
-          final String value = uniqueId.value ?? '';
-          final String? type = uniqueId.type?.value?.toLowerCase();
+          final String value = uniqueId.value.value ?? '';
+          final String? type = uniqueId.type.toString().toLowerCase();
           if (type == 'oid' && !resourceCache.containsKey(value)) {
             resourceCache.set(value, resource.toJson());
           } else if (type == 'uri' && !resourceCache.containsKey(value)) {

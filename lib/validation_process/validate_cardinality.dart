@@ -17,7 +17,7 @@ Future<ValidationResults> validateCardinality(
   final List<String> missingPaths = <String>[];
 
   for (final ElementDefinition element in elements) {
-    final String? path = element.path;
+    final String? path = element.path.value;
     if (path != null) {
       if (!_isPathAlreadyChecked(missingPaths, path)) {
         Node? foundNode = _findNodeRecursively(node, originalPath, replacePath,
@@ -77,7 +77,7 @@ Future<ValidationResults> _validateElementCardinality({
   } else if (foundNode != null) {
     // Check for too many occurrences of an element
     if (element.max != null && element.max != '*') {
-      final int? max = int.tryParse(element.max!);
+      final int? max = int.tryParse(element.max!.value!);
       if (max != null &&
           foundNode is ArrayNode &&
           foundNode.children.length > max) {
@@ -211,4 +211,4 @@ Node? _checkForPolymorphism(
 }
 
 bool _isAPolymorphicElement(ElementDefinition element) =>
-    element.path != null && element.path!.endsWith('[x]');
+    element.path.value?.endsWith('[x]') ?? false;

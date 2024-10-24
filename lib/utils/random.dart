@@ -5,20 +5,21 @@ import '../fhir_validation.dart';
 
 String? findCode(ElementDefinition element, String path) {
   if (element.type?.length == 1) {
-    return element.type?.first.code?.toString();
+    return element.type?.first.code.toString();
   } else if ((element.type?.length ?? 0) > 1) {
-    if (element.path?.endsWith('[x]') ?? false) {
+    if (element.path.value?.endsWith('[x]') ?? false) {
       final String type = path
           .split('.')
           .last
           .replaceAll(
-              element.path?.split('.').last.replaceAll('[x]', '') ?? '', '')
+              element.path.value?.split('.').last.replaceAll('[x]', '') ?? '',
+              '')
           .toLowerCase();
       return element.type!
           .firstWhereOrNull((ElementDefinitionType t) =>
-              t.code?.toString().toLowerCase() == type)
+              t.code.toString().toLowerCase() == type)
           ?.code
-          ?.toString();
+          .toString();
     }
   }
   return null;
@@ -42,8 +43,8 @@ List<ElementDefinition> extractElements(
 
 extension GetUrl on StructureDefinition {
   String? getUrl() {
-    String? sdUrl = url?.toString();
-    if (sdUrl != null && version != null) {
+    String? sdUrl = url.toString();
+    if (version != null) {
       sdUrl += '|$version';
     }
     return sdUrl;
@@ -82,9 +83,7 @@ Future<Set<String>> getValueSetCodes(String valueSetUrl, Client? client) async {
         // Extract codes from the concepts directly defined in the include section
         for (ValueSetConcept concept
             in include.concept ?? <ValueSetConcept>[]) {
-          if (concept.code != null) {
-            codes.add(concept.code!.toString());
-          }
+          codes.add(concept.code.toString());
         }
       }
     }
@@ -103,9 +102,7 @@ Future<Set<String>> getValueSetCodes(String valueSetUrl, Client? client) async {
     // Extract codes from the CodeSystem.concept section
     for (CodeSystemConcept concept
         in codeSystem.concept ?? <CodeSystemConcept>[]) {
-      if (concept.code != null) {
-        codes.add(concept.code!.toString());
-      }
+      codes.add(concept.code.toString());
       // Recursively extract codes from nested concepts
       codes.addAll(_extractCodesFromConcept(concept));
     }
@@ -136,9 +133,7 @@ Future<Set<String>> _fetchIncludedValueSetCodes(
         // Do not recurse further if the included ValueSet references other ValueSets
         for (ValueSetConcept concept
             in include.concept ?? <ValueSetConcept>[]) {
-          if (concept.code != null) {
-            includedCodes.add(concept.code!.toString());
-          }
+          includedCodes.add(concept.code.toString());
         }
       }
     }
@@ -157,9 +152,7 @@ Future<Set<String>> _fetchIncludedValueSetCodes(
     // Extract codes from the CodeSystem.concept section
     for (CodeSystemConcept concept
         in includedCodeSystem.concept ?? <CodeSystemConcept>[]) {
-      if (concept.code != null) {
-        includedCodes.add(concept.code!.toString());
-      }
+      includedCodes.add(concept.code.toString());
       // Recursively extract codes from nested concepts
       includedCodes.addAll(_extractCodesFromConcept(concept));
     }
@@ -170,9 +163,7 @@ Future<Set<String>> _fetchIncludedValueSetCodes(
 
 Set<String> _extractCodesFromConcept(CodeSystemConcept concept) {
   final Set<String> codes = <String>{};
-  if (concept.code != null) {
-    codes.add(concept.code!.toString());
-  }
+  codes.add(concept.code.toString());
   for (CodeSystemConcept subConcept
       in concept.concept ?? <CodeSystemConcept>[]) {
     codes.addAll(_extractCodesFromConcept(subConcept));

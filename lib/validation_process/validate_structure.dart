@@ -168,7 +168,7 @@ Future<ValidationResults> _withoutCode(
   Client? client,
 ) async {
   for (final FhirExtension ext in element.extension_ ?? <FhirExtension>[]) {
-    final String? url = ext.url?.toString();
+    final String? url = ext.url.toString();
     if (url != null) {
       final Map<String, dynamic>? structureDefinition =
           await getResource(url, client);
@@ -317,7 +317,7 @@ Future<ValidationResults> _checkEnumerations(
   Client? client,
 ) async {
   if (element.binding != null &&
-      element.binding!.strength == ElementDefinitionBindingStrength.required_ &&
+      element.binding!.strength == BindingStrength.required_ &&
       element.binding?.valueSet != null) {
     // Get the allowed codes from the value set
     final Set<String> allowedCodes =
@@ -344,7 +344,7 @@ ValidationResults _checkStringPatterns(
   Node node,
 ) {
   if (element.patternString != null && value is String) {
-    final RegExp regex = RegExp(element.patternString!);
+    final RegExp regex = RegExp(element.patternString!.value!);
     if (!regex.hasMatch(value)) {
       results.addResult(
         node,
@@ -505,9 +505,8 @@ bool _isAResourceType(PropertyNode node, ElementDefinition? element) =>
 ElementDefinition? _polymorphicElement(
     String path, List<ElementDefinition> elements) {
   return elements.firstWhereOrNull((ElementDefinition element) =>
-      element.path != null &&
-      element.path!.endsWith('[x]') &&
-      path.startsWith(element.path!.replaceFirst('[x]', '')));
+      (element.path.value?.endsWith('[x]') ?? false) &&
+      path.startsWith(element.path.value!.replaceFirst('[x]', '')));
 }
 
 ElementDefinition? _findElementDefinitionFromNode(String originalPath,
