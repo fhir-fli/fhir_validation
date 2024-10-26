@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'test/fhir_validation_tests.dart';
+import 'package:fhir_validation/test/fhir_validation_tests.dart';
 
 void main() => runApp(const MyApp());
 
@@ -17,16 +17,16 @@ class MyApp extends StatelessWidget {
         onPressed: () async {
           await fhirValidationTest();
         },
-        child: SizedBox(
+        child: const SizedBox(
           child: Center(
-              child: const Text(
+              child: Text(
             'Press me',
             style: TextStyle(fontSize: 20),
-          )),
-          height: 200.0,
-          width: 200.0,
+          ),),
+          height: 200,
+          width: 200,
         ),
       ),
-    ))));
+    ),),),);
   }
 }

@@ -1,7 +1,7 @@
 import 'package:fhir_r4/fhir_r4.dart';
 import 'package:http/http.dart';
 
-import '../fhir_validation.dart';
+import 'package:fhir_validation/fhir_validation.dart';
 
 Future<ValidationResults> validateInvariants({
   required Node node,
@@ -12,11 +12,11 @@ Future<ValidationResults> validateInvariants({
 }) async {
   if (element.constraint != null) {
     final dynamic context = _getContext(node);
-    for (final ElementDefinitionConstraint constraint in element.constraint!) {
+    for (final constraint in element.constraint!) {
       if (constraint.expression != null) {
         if (!_constraintsIDontWantToDo(node, constraint.expression!.value!)) {
-          if (!await evaluateConstraint(
-              context, constraint.expression!.value!)) {
+          if (!evaluateConstraint(
+              context, constraint.expression!.value!,)) {
             results.addResult(
               node,
               withUrlIfExists('Invariant violation: ${constraint.human}', url),
@@ -41,7 +41,7 @@ dynamic _getContext(Node node) {
   dynamic context = nodeToMap(node);
 
   if (node is PropertyNode) {
-    final String finalPath = node.path.split('.').last;
+    final finalPath = node.path.split('.').last;
     context = context[finalPath];
   }
 
@@ -53,7 +53,7 @@ bool evaluateConstraint(
   String expression,
 ) {
   // Evaluate the FHIRPath expression using the context
-  final List<dynamic> result = walkFhirPath(
+  final result = walkFhirPath(
     context: context,
     pathExpression: expression,
   );
@@ -82,8 +82,8 @@ dynamic nodeToMap(Node node) {
 }
 
 Map<String, dynamic> _objectNodeToMap(ObjectNode node) {
-  final Map<String, dynamic> map = <String, dynamic>{};
-  for (final PropertyNode property in node.children) {
+  final map = <String, dynamic>{};
+  for (final property in node.children) {
     if (property.key?.value == null) {
       throw Exception('PropertyNode key is null');
     }
@@ -93,7 +93,7 @@ Map<String, dynamic> _objectNodeToMap(ObjectNode node) {
 }
 
 List<dynamic> _arrayNodeToList(ArrayNode node) {
-  return node.children.map((Node child) => nodeToMap(child)).toList();
+  return node.children.map(nodeToMap).toList();
 }
 
 bool _constraintsIDontWantToDo(Node node, String expression) {

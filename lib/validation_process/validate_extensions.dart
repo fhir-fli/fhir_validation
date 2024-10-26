@@ -1,7 +1,7 @@
 import 'package:fhir_r4/fhir_r4.dart';
 import 'package:http/http.dart';
 
-import '../fhir_validation.dart';
+import 'package:fhir_validation/fhir_validation.dart';
 
 Future<ValidationResults> validateExtensions(
   Node node,
@@ -9,25 +9,25 @@ Future<ValidationResults> validateExtensions(
   ValidationResults results,
   Client? client,
 ) async {
-  for (ElementDefinition element in elements) {
+  for (var element in elements) {
     if (element.type != null &&
         element.type!.any((ElementDefinitionType t) => t.code == 'Extension')) {
-      final FhirCanonical? extensionUrl = element.type
+      final extensionUrl = element.type
           ?.firstWhere((ElementDefinitionType t) => t.code == 'Extension')
           .profile
           ?.first;
-      final Map<String, dynamic>? extensionDefinition =
+      final extensionDefinition =
           await getResource(extensionUrl.toString(), client);
-      final StructureDefinition? structureDefinition =
+      final structureDefinition =
           extensionDefinition != null &&
                   extensionDefinition['resourceType'] == 'StructureDefinition'
               ? StructureDefinition.fromJson(extensionDefinition)
               : null;
       if (structureDefinition != null) {
-        final List<ElementDefinition> extensionElements =
+        final extensionElements =
             extractElements(structureDefinition);
-        final Node? extensionNode =
-            node.getPropertyNode('_' + element.path.value!);
+        final extensionNode =
+            node.getPropertyNode('_${element.path.value!}');
         if (extensionNode != null) {
           results = await validateStructure(
             node: extensionNode,

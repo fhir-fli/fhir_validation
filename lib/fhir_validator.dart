@@ -22,7 +22,7 @@ class FhirValidator {
     required Client? client,
     StructureDefinition? structureDefinition,
   }) async {
-    final Map<String, dynamic> resourceMap =
+    final resourceMap =
         json.decode(resourceToValidate) as Map<String, dynamic>;
     return validateFhirMap(
       resourceToValidate: resourceMap,
@@ -36,7 +36,7 @@ class FhirValidator {
     required Client? client,
     StructureDefinition? structureDefinition,
   }) async {
-    final String? type = resourceToValidate['resourceType'] as String?;
+    final type = resourceToValidate['resourceType'] as String?;
     if (type == null) {
       return ValidationResults()
         ..addResult(
@@ -46,14 +46,14 @@ class FhirValidator {
         );
     }
     // PrettyPrinting makes lines and columns correct
-    final String resourceString = prettyPrintJson(resourceToValidate);
+    final resourceString = prettyPrintJson(resourceToValidate);
 
     // Parse the JSON with position information
-    final Node node = parse(resourceString, Settings(), type);
+    final node = parse(resourceString, Settings(), type);
 
     if (structureDefinition != null) {
       // If structure definition is found, validate the resource against it
-      return await evaluate(
+      return evaluate(
         resourceToValidate,
         structureDefinition,
         type,
@@ -64,13 +64,13 @@ class FhirValidator {
     }
 
     // Retrieve profiles for the resource
-    List<Map<String, dynamic>> profiles = <Map<String, dynamic>>[];
-    final ValidationResults results =
+    var profiles = <Map<String, dynamic>>[];
+    final results =
         await _getProfiles(node, client, profiles);
 
     if (profiles.isNotEmpty) {
       // If profiles are found, validate the resource against each profile
-      for (final Map<String, dynamic> profile in profiles) {
+      for (final profile in profiles) {
         results.combineResults(
           await evaluate(
             resourceToValidate,
@@ -87,7 +87,7 @@ class FhirValidator {
 
     // So we don't have profiles or a StructureDefinition, so we just go with
     // a generic StructureDefinition
-    final Map<String, dynamic>? definitionMap = await getResource(type, client);
+    final definitionMap = await getResource(type, client);
     if (definitionMap == null) {
       // If no structure definition is found, return an error
       return results
@@ -128,9 +128,9 @@ class FhirValidator {
     Node node,
     Client? client,
   ) async {
-    final String? url = structureDefinition.getUrl();
-    ValidationResults results = ValidationResults();
-    final List<ElementDefinition> elements =
+    final url = structureDefinition.getUrl();
+    var results = ValidationResults();
+    final elements =
         extractElements(structureDefinition);
 
     results = await validateStructure(
@@ -163,7 +163,7 @@ class FhirValidator {
 
     if (type == 'QuestionnaireResponse' &&
         mapToValidate['resourceType'] == 'QuestionnaireResponse') {
-      final QuestionnaireResponse questionnaireResponse =
+      final questionnaireResponse =
           QuestionnaireResponse.fromJson(mapToValidate);
       results = await validateQuestionnaireResponse(
         questionnaireResponse: questionnaireResponse,
@@ -175,16 +175,16 @@ class FhirValidator {
   }
 
   Future<ValidationResults> _getProfiles(
-      Node node, Client? client, List<Map<String, dynamic>> profiles) async {
-    final ValidationResults results = ValidationResults();
+      Node node, Client? client, List<Map<String, dynamic>> profiles,) async {
+    final results = ValidationResults();
     if (node is ObjectNode) {
       // Extract profiles from the resource if any are specified in the meta section
-      final List<LiteralNode> profileNodes = node.extractProfileNodes();
+      final profileNodes = node.extractProfileNodes();
 
       // Retrieve profile definitions for each profile URL
-      for (LiteralNode profile in profileNodes) {
+      for (var profile in profileNodes) {
         try {
-          final Map<String, dynamic>? profileDef =
+          final profileDef =
               await getResource(profile.value as String, client);
           if (profileDef != null) {
             profiles.add(profileDef);

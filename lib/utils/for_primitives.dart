@@ -1,6 +1,7 @@
 import 'package:fhir_r4/fhir_r4.dart';
 
-bool isPrimitiveType(String type) => (<String>[
+/// List of the Strings for the primitive types
+bool isPrimitiveType(String type) => <String>[
       'base64binary',
       'boolean',
       'canonical',
@@ -24,9 +25,10 @@ bool isPrimitiveType(String type) => (<String>[
       'string',
       'http://hl7.org/fhirpath/system.string',
       'backboneelement',
-    ].contains(type.toLowerCase()));
+    ].contains(type.toLowerCase());
 
-bool isComparablePrimitive(String type) => (<String>[
+/// Tells if the primitive in question is comparable
+bool isComparablePrimitive(String type) => <String>[
       'date',
       'decimal',
       'datetime',
@@ -36,11 +38,11 @@ bool isComparablePrimitive(String type) => (<String>[
       'positiveint',
       'time',
       'unsignedint',
-    ].contains(type.toLowerCase()));
+    ].contains(type.toLowerCase());
 
+/// Converts a FHIR primitive into an appropriate Dart primitive
 String fhirPrimitiveToDartPrimitive(String primitiveClass) {
-  primitiveClass = primitiveClass.toLowerCase();
-  switch (primitiveClass) {
+  switch (primitiveClass.toLowerCase()) {
     case 'base64binary':
       return 'string';
     case 'boolean':
@@ -89,18 +91,34 @@ String fhirPrimitiveToDartPrimitive(String primitiveClass) {
   }
 }
 
+/// Assesses if a value is a valid Primitive of the type specificed
 bool isValueAValidPrimitive(String primitiveClass, dynamic value) {
-  primitiveClass = primitiveClass.toLowerCase();
   try {
-    switch (primitiveClass) {
+    switch (primitiveClass.toLowerCase()) {
       case 'base64binary':
-        FhirBase64Binary.fromJson(value);
+        if (value is! String) {
+          return false;
+        } else {
+          FhirBase64Binary(value);
+        }
       case 'boolean':
-        FhirBoolean.fromJson(value);
+        if (value is! bool) {
+          return false;
+        } else {
+          FhirBoolean(value);
+        }
       case 'canonical':
-        FhirCanonical.fromJson(value);
+        if (value is! String) {
+          return false;
+        } else {
+          FhirCanonical(value);
+        }
       case 'code':
-        FhirCode.fromJson(value);
+        if (value is! String) {
+          return false;
+        } else {
+          FhirCode(value);
+        }
       case 'date':
         if (value is String) {
           FhirDate.fromString(value);
@@ -108,7 +126,11 @@ bool isValueAValidPrimitive(String primitiveClass, dynamic value) {
           return false;
         }
       case 'decimal':
-        FhirDecimal.fromJson(value);
+        if (value is! num) {
+          return false;
+        } else {
+          FhirDecimal(value);
+        }
       case 'datetime':
         if (value is String) {
           FhirDateTime.fromString(value);
@@ -116,11 +138,23 @@ bool isValueAValidPrimitive(String primitiveClass, dynamic value) {
           return false;
         }
       case 'uri':
-        FhirUri.fromJson(value);
+        if (value is! String) {
+          return false;
+        } else {
+          FhirUri(value);
+        }
       case 'url':
-        FhirUrl.fromJson(value);
+        if (value is! String) {
+          return false;
+        } else {
+          FhirUrl(value);
+        }
       case 'id':
-        FhirId.fromJson(value);
+        if (value is! String) {
+          return false;
+        } else {
+          FhirId(value);
+        }
       case 'instant':
         if (value is String) {
           FhirInstant.fromString(value);
@@ -128,23 +162,66 @@ bool isValueAValidPrimitive(String primitiveClass, dynamic value) {
           return false;
         }
       case 'integer':
-        FhirInteger.fromJson(value);
+        if (value is! int) {
+          return false;
+        } else {
+          FhirInteger(value);
+        }
       case 'integer64':
-        FhirInteger64.fromJson(value);
+        if (value is! String && value is! BigInt) {
+          return false;
+        } else if (value is BigInt) {
+          FhirInteger64(value);
+        } else {
+          final bigInt = BigInt.tryParse(value as String);
+          if (bigInt == null) {
+            return false;
+          } else {
+            FhirInteger64(bigInt);
+          }
+        }
       case 'markdown':
-        FhirMarkdown.fromJson(value);
+        if (value is! String) {
+          return false;
+        } else {
+          FhirMarkdown(value);
+        }
       case 'xhtml':
-        FhirMarkdown.fromJson(value);
+        if (value is! String) {
+          return false;
+        } else {
+          FhirMarkdown(value);
+        }
       case 'oid':
-        FhirOid.fromJson(value);
+        if (value is! String) {
+          return false;
+        } else {
+          FhirOid(value);
+        }
       case 'positiveint':
-        FhirPositiveInt.fromJson(value);
+        if (value is! int) {
+          return false;
+        } else {
+          FhirPositiveInt(value);
+        }
       case 'time':
-        FhirTime.fromJson(value);
+        if (value is! String) {
+          return false;
+        } else {
+          FhirTime(value);
+        }
       case 'unsignedint':
-        FhirUnsignedInt.fromJson(value);
+        if (value is! int) {
+          return false;
+        } else {
+          FhirUnsignedInt(value);
+        }
       case 'uuid':
-        FhirUuid.fromJson(value);
+        if (value is! String) {
+          return false;
+        } else {
+          FhirUuid(value);
+        }
       case 'http://hl7.org/fhirpath/system.string':
       case 'string':
         return value is String;

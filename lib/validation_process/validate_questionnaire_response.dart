@@ -2,16 +2,16 @@ import 'package:fhir_r4/fhir_r4.dart';
 import 'package:http/http.dart';
 import 'package:collection/collection.dart';
 
-import '../fhir_validation.dart';
+import 'package:fhir_validation/fhir_validation.dart';
 
 Future<ValidationResults> validateQuestionnaireResponse({
   required QuestionnaireResponse questionnaireResponse,
   required Client? client,
 }) async {
-  final ValidationResults results = ValidationResults();
+  final results = ValidationResults();
 
   // Extract the questionnaire URL
-  final String? questionnaireUrl =
+  final questionnaireUrl =
       questionnaireResponse.questionnaire?.toString();
   if (questionnaireUrl == null) {
     return results
@@ -23,7 +23,7 @@ Future<ValidationResults> validateQuestionnaireResponse({
   }
 
   // Retrieve the Questionnaire
-  final Map<String, dynamic>? questionnaireDef =
+  final questionnaireDef =
       await getResource(questionnaireUrl, client);
   if (questionnaireDef == null) {
     return results
@@ -33,7 +33,7 @@ Future<ValidationResults> validateQuestionnaireResponse({
         Severity.error,
       );
   }
-  final Questionnaire questionnaire = Questionnaire.fromJson(questionnaireDef);
+  final questionnaire = Questionnaire.fromJson(questionnaireDef);
 
   // Validate the QuestionnaireResponse against the Questionnaire
   results.combineResults(
@@ -50,12 +50,12 @@ Future<ValidationResults> _validateResponseItems({
   required Questionnaire questionnaire,
   required QuestionnaireResponse response,
 }) async {
-  final ValidationResults results = ValidationResults();
+  final results = ValidationResults();
 
   // Compare each item in the QuestionnaireResponse with the corresponding item in the Questionnaire
-  for (final QuestionnaireResponseItem responseItem
+  for (final responseItem
       in response.item ?? <QuestionnaireResponseItem>[]) {
-    final QuestionnaireItem? questionnaireItem =
+    final questionnaireItem =
         questionnaire.item?.firstWhereOrNull(
       (QuestionnaireItem item) => item.linkId == responseItem.linkId,
     );
@@ -85,7 +85,7 @@ ValidationResults _validateResponseItem({
   required QuestionnaireItem questionnaireItem,
   required QuestionnaireResponseItem responseItem,
 }) {
-  final ValidationResults results = ValidationResults();
+  final results = ValidationResults();
 
   // Validate type and constraints
   // Example: Check if the response type matches the questionnaire item type
@@ -100,9 +100,9 @@ ValidationResults _validateResponseItem({
   }
 
   // Validate nested items
-  for (final QuestionnaireResponseItem nestedResponseItem
+  for (final nestedResponseItem
       in responseItem.item ?? <QuestionnaireResponseItem>[]) {
-    final QuestionnaireItem? nestedQuestionnaireItem =
+    final nestedQuestionnaireItem =
         questionnaireItem.item?.firstWhereOrNull(
       (QuestionnaireItem item) => item.linkId == nestedResponseItem.linkId,
     );

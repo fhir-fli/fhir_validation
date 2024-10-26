@@ -5,7 +5,7 @@ import 'package:flutter/services.dart' show rootBundle;
 const String path = 'lib/test/test1';
 
 Future<String> getFileData(String path) async {
-  return await rootBundle.loadString(path);
+  return rootBundle.loadString(path);
 }
 
 Future<Resource> resource() async =>

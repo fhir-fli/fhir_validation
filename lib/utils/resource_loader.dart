@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:fhir_definitions/fhir_definitions.dart';
 import 'package:http/http.dart';
 
-import 'resource_cache.dart';
-
-// Singleton cache instance
+/// Singleton cache instance
 final ResourceCache resourceCache = ResourceCache();
 
 /// Utility method to retrieve a resource from the given URL, checking online
@@ -14,41 +13,45 @@ Future<Map<String, dynamic>?> getResource(
   Client? client,
 ) async {
   // Check cache first
-  final Map<String, dynamic>? cachedResource = resourceCache.get(url) ??
-      resourceCache.get('http://hl7.org/fhir/StructureDefinition/$url');
+  final cachedResource = (await resourceCache.get(url)) ??
+      (await resourceCache.get('http://hl7.org/fhir/StructureDefinition/$url'));
   if (cachedResource != null) {
     return cachedResource;
   } else {
-    final Map<String, dynamic>? result =
-        await _requestFromCanonical(url, client);
+    final result = await _requestFromCanonical(url, client);
     if (result != null) {
-      resourceCache.set(url, result);
+      await resourceCache.set(url, result);
       if (result['url'] != null) {
-        resourceCache.set(result['url'] as String, result);
+        await resourceCache.set(result['url'] as String, result);
       }
       return result;
     }
   }
   // Normalize URL
-  final String normalizedUrl = url.contains('|') ? url.split('|')[0] : url;
+  final normalizedUrl = url.contains('|') ? url.split('|')[0] : url;
   if (normalizedUrl != url) {
-    getResource(normalizedUrl, client);
+    await getResource(normalizedUrl, client);
   }
   return null;
 }
 
 /// Function to request a resource from a canonical URL.
 Future<Map<String, dynamic>?> _requestFromCanonical(
-    String canonical, Client? client) async {
+  String canonical,
+  Client? client,
+) async {
   try {
-    final Response response = await (client?.get(Uri.parse(canonical),
-            headers: <String, String>{'Accept': 'application/fhir+json'}) ??
-        get(Uri.parse(canonical),
-            headers: <String, String>{'Accept': 'application/fhir+json'}));
+    final response = await (client?.get(
+          Uri.parse(canonical),
+          headers: <String, String>{'Accept': 'application/fhir+json'},
+        ) ??
+        get(
+          Uri.parse(canonical),
+          headers: <String, String>{'Accept': 'application/fhir+json'},
+        ));
     if (response.statusCode == 200) {
-      final Map<String, dynamic> result =
-          jsonDecode(response.body) as Map<String, dynamic>;
-      resourceCache.set(canonical, result);
+      final result = jsonDecode(response.body) as Map<String, dynamic>;
+      await resourceCache.set(canonical, result);
       return result;
     }
   } catch (e) {
