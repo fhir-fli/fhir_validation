@@ -11,8 +11,7 @@ Future<ValidationResults> validateBindings({
   for (var element in elements) {
     if (element.binding != null && element.binding!.valueSet != null) {
       final valueSetUrl = element.binding!.valueSet.toString();
-      final validCodes =
-          await getValueSetCodes(valueSetUrl, client);
+      final validCodes = await getValueSetCodes(valueSetUrl, client);
       final elementPath = element.path.value;
       (node as ObjectNode).getPropertyNode(element.path.value ?? '');
       if (elementPath != null) {

@@ -13,16 +13,16 @@ Future<Map<String, dynamic>?> getResource(
   Client? client,
 ) async {
   // Check cache first
-  final cachedResource = (await resourceCache.get(url)) ??
-      (await resourceCache.get('http://hl7.org/fhir/StructureDefinition/$url'));
+  final cachedResource = resourceCache.get(url) ??
+      resourceCache.get('http://hl7.org/fhir/StructureDefinition/$url');
   if (cachedResource != null) {
     return cachedResource;
   } else {
     final result = await _requestFromCanonical(url, client);
     if (result != null) {
-      await resourceCache.set(url, result);
+      resourceCache.set(url, result);
       if (result['url'] != null) {
-        await resourceCache.set(result['url'] as String, result);
+        resourceCache.set(result['url'] as String, result);
       }
       return result;
     }
@@ -41,17 +41,17 @@ Future<Map<String, dynamic>?> _requestFromCanonical(
   Client? client,
 ) async {
   try {
-    final response = await (client?.get(
+    final response = await client?.get(
           Uri.parse(canonical),
           headers: <String, String>{'Accept': 'application/fhir+json'},
         ) ??
-        get(
+        await get(
           Uri.parse(canonical),
           headers: <String, String>{'Accept': 'application/fhir+json'},
-        ));
+        );
     if (response.statusCode == 200) {
       final result = jsonDecode(response.body) as Map<String, dynamic>;
-      await resourceCache.set(canonical, result);
+      resourceCache.set(canonical, result);
       return result;
     }
   } catch (e) {

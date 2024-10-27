@@ -16,7 +16,9 @@ Future<ValidationResults> validateInvariants({
       if (constraint.expression != null) {
         if (!_constraintsIDontWantToDo(node, constraint.expression!.value!)) {
           if (!evaluateConstraint(
-              context, constraint.expression!.value!,)) {
+            context,
+            constraint.expression!.value!,
+          )) {
             results.addResult(
               node,
               withUrlIfExists('Invariant violation: ${constraint.human}', url),

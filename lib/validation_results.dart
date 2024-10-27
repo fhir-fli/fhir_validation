@@ -11,7 +11,8 @@ class ValidationResults {
 
   void addMissingResult(String path, String newItem, Severity severity) {
     final index = missingResults.indexWhere(
-        (ValidationDiagnostics element) => path.startsWith(element.path),);
+      (ValidationDiagnostics element) => path.startsWith(element.path),
+    );
     if (index == -1) {
       missingResults.add(ValidationDiagnostics(path, newItem, severity));
     }
@@ -29,18 +30,23 @@ class ValidationResults {
   Map<String, dynamic> toJson() {
     _joinResults();
     final error = results
-        .where((ValidationDiagnostics element) =>
-            element.severity == Severity.error,)
+        .where(
+          (ValidationDiagnostics element) => element.severity == Severity.error,
+        )
         .map((ValidationDiagnostics e) => e.toJson())
         .toList();
     final warning = results
-        .where((ValidationDiagnostics element) =>
-            element.severity == Severity.warning,)
+        .where(
+          (ValidationDiagnostics element) =>
+              element.severity == Severity.warning,
+        )
         .map((ValidationDiagnostics e) => e.toJson())
         .toList();
     final information = results
-        .where((ValidationDiagnostics element) =>
-            element.severity == Severity.information,)
+        .where(
+          (ValidationDiagnostics element) =>
+              element.severity == Severity.information,
+        )
         .map((ValidationDiagnostics e) => e.toJson())
         .toList();
     return <String, dynamic>{
@@ -56,14 +62,15 @@ class ValidationResults {
   }
 
   List<ValidationDiagnostics> _cleanMissingResults() {
-    missingResults.sort((ValidationDiagnostics a, ValidationDiagnostics b) =>
-        a.path.length.compareTo(b.path.length),);
-    final cleanedResults =
-        <ValidationDiagnostics>[];
+    missingResults.sort(
+      (ValidationDiagnostics a, ValidationDiagnostics b) =>
+          a.path.length.compareTo(b.path.length),
+    );
+    final cleanedResults = <ValidationDiagnostics>[];
     for (final result in missingResults) {
       final index = cleanedResults.indexWhere(
-          (ValidationDiagnostics element) =>
-              result.path.startsWith(element.path),);
+        (ValidationDiagnostics element) => result.path.startsWith(element.path),
+      );
       if (index == -1) {
         cleanedResults.add(result);
       }
@@ -73,61 +80,68 @@ class ValidationResults {
 
   OperationOutcomeIssue _makeOperationOutcomeIssue(ValidationDiagnostics e) =>
       OperationOutcomeIssue(
-          severity: IssueSeverity.fromJson({'value': e.severity.toJson()}),
-          code: IssueType.processing,
-          diagnostics: e.diagnostics.toFhirString,
-          extension_: e.line == null && e.column == null
-              ? null
-              : <FhirExtension>[
-                  if (e.line != null)
-                    FhirExtension(
-                      url: FhirString(
-                          'http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line',),
-                      valueInteger:
-                          e.line == null ? null : FhirInteger(e.line),
+        severity: IssueSeverity.fromJson({'value': e.severity.toJson()}),
+        code: IssueType.processing,
+        diagnostics: e.diagnostics.toFhirString,
+        extension_: e.line == null && e.column == null
+            ? null
+            : <FhirExtension>[
+                if (e.line != null)
+                  FhirExtension(
+                    url: FhirString(
+                      'http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line',
                     ),
-                  if (e.column != null)
-                    FhirExtension(
-                      url: FhirString(
-                          'http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col',),
-                      valueInteger:
-                          e.column == null ? null : FhirInteger(e.column),
+                    valueInteger: e.line == null ? null : FhirInteger(e.line),
+                  ),
+                if (e.column != null)
+                  FhirExtension(
+                    url: FhirString(
+                      'http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col',
                     ),
-                ],
-          location: <FhirString>[
-            e.path.toFhirString,
-            if (e.line != null && e.column != null)
-              'Line[${e.line}] Column[${e.column}]'.toFhirString,
-            if (e.line != null && e.column == null)
-              'Line[${e.line}]'.toFhirString,
-            if (e.line == null && e.column != null)
-              'Column[${e.column}]'.toFhirString,
-          ],);
+                    valueInteger:
+                        e.column == null ? null : FhirInteger(e.column),
+                  ),
+              ],
+        location: <FhirString>[
+          e.path.toFhirString,
+          if (e.line != null && e.column != null)
+            'Line[${e.line}] Column[${e.column}]'.toFhirString,
+          if (e.line != null && e.column == null)
+            'Line[${e.line}]'.toFhirString,
+          if (e.line == null && e.column != null)
+            'Column[${e.column}]'.toFhirString,
+        ],
+      );
 
   OperationOutcome toOperationOutcome() {
     _joinResults();
     final error = results
-        .where((ValidationDiagnostics element) =>
-            element.severity == Severity.error,)
+        .where(
+          (ValidationDiagnostics element) => element.severity == Severity.error,
+        )
         .toList();
     final warning = results
-        .where((ValidationDiagnostics element) =>
-            element.severity == Severity.warning,)
+        .where(
+          (ValidationDiagnostics element) =>
+              element.severity == Severity.warning,
+        )
         .toList();
     final information = results
-        .where((ValidationDiagnostics element) =>
-            element.severity == Severity.information,)
+        .where(
+          (ValidationDiagnostics element) =>
+              element.severity == Severity.information,
+        )
         .toList();
     final issues = <OperationOutcomeIssue>[];
-    issues.addAll(error
-        .map(_makeOperationOutcomeIssue)
-        .toList(),);
-    issues.addAll(warning
-        .map(_makeOperationOutcomeIssue)
-        .toList(),);
-    issues.addAll(information
-        .map(_makeOperationOutcomeIssue)
-        .toList(),);
+    issues.addAll(
+      error.map(_makeOperationOutcomeIssue).toList(),
+    );
+    issues.addAll(
+      warning.map(_makeOperationOutcomeIssue).toList(),
+    );
+    issues.addAll(
+      information.map(_makeOperationOutcomeIssue).toList(),
+    );
     final outcome = OperationOutcome(issue: issues);
     return outcome;
   }
@@ -147,7 +161,6 @@ class ValidationResults {
 }
 
 class ValidationDiagnostics {
-
   ValidationDiagnostics(
     this.path,
     this.diagnostics,

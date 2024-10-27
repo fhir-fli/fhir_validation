@@ -11,8 +11,7 @@ Future<ValidationResults> validateQuestionnaireResponse({
   final results = ValidationResults();
 
   // Extract the questionnaire URL
-  final questionnaireUrl =
-      questionnaireResponse.questionnaire?.toString();
+  final questionnaireUrl = questionnaireResponse.questionnaire?.toString();
   if (questionnaireUrl == null) {
     return results
       ..addResult(
@@ -23,8 +22,7 @@ Future<ValidationResults> validateQuestionnaireResponse({
   }
 
   // Retrieve the Questionnaire
-  final questionnaireDef =
-      await getResource(questionnaireUrl, client);
+  final questionnaireDef = await getResource(questionnaireUrl, client);
   if (questionnaireDef == null) {
     return results
       ..addResult(
@@ -53,10 +51,8 @@ Future<ValidationResults> _validateResponseItems({
   final results = ValidationResults();
 
   // Compare each item in the QuestionnaireResponse with the corresponding item in the Questionnaire
-  for (final responseItem
-      in response.item ?? <QuestionnaireResponseItem>[]) {
-    final questionnaireItem =
-        questionnaire.item?.firstWhereOrNull(
+  for (final responseItem in response.item ?? <QuestionnaireResponseItem>[]) {
+    final questionnaireItem = questionnaire.item?.firstWhereOrNull(
       (QuestionnaireItem item) => item.linkId == responseItem.linkId,
     );
 
@@ -102,8 +98,7 @@ ValidationResults _validateResponseItem({
   // Validate nested items
   for (final nestedResponseItem
       in responseItem.item ?? <QuestionnaireResponseItem>[]) {
-    final nestedQuestionnaireItem =
-        questionnaireItem.item?.firstWhereOrNull(
+    final nestedQuestionnaireItem = questionnaireItem.item?.firstWhereOrNull(
       (QuestionnaireItem item) => item.linkId == nestedResponseItem.linkId,
     );
 

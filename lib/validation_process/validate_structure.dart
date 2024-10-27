@@ -14,7 +14,14 @@ Future<ValidationResults> validateStructure({
     throw Exception('Root node must be an ObjectNode');
   }
   return _objectNode(
-      url, node, type, type, elements, ValidationResults(), client,);
+    url,
+    node,
+    type,
+    type,
+    elements,
+    ValidationResults(),
+    client,
+  );
 }
 
 Future<ValidationResults> _traverseAst(
@@ -28,13 +35,34 @@ Future<ValidationResults> _traverseAst(
 ) async {
   if (node is ObjectNode) {
     return _objectNode(
-        url, node, originalPath, replacePath, elements, results, client,);
+      url,
+      node,
+      originalPath,
+      replacePath,
+      elements,
+      results,
+      client,
+    );
   } else if (node is ArrayNode) {
     return _arrayNode(
-        url, node, originalPath, replacePath, elements, results, client,);
+      url,
+      node,
+      originalPath,
+      replacePath,
+      elements,
+      results,
+      client,
+    );
   } else if (node is PropertyNode) {
     return _propertyNode(
-        url, node, originalPath, replacePath, elements, results, client,);
+      url,
+      node,
+      originalPath,
+      replacePath,
+      elements,
+      results,
+      client,
+    );
   } else {
     throw Exception('Invalid node type: ${node.runtimeType} at ${node.path}');
   }
@@ -51,7 +79,14 @@ Future<ValidationResults> _objectNode(
 ) async {
   for (var property in node.children) {
     results = await _propertyNode(
-        url, property, originalPath, replacePath, elements, results, client,);
+      url,
+      property,
+      originalPath,
+      replacePath,
+      elements,
+      results,
+      client,
+    );
   }
 
   final element =
@@ -81,20 +116,33 @@ Future<ValidationResults> _arrayNode(
   for (final child in node.children) {
     if (child is LiteralNode) {
       final element = _findElementDefinitionFromNode(
-          originalPath, replacePath, child, elements,);
+        originalPath,
+        replacePath,
+        child,
+        elements,
+      );
       if (element != null) {
         results = await _literalNode(url, child, element, results, client);
       } else {
         results.addResult(
           child,
           withUrlIfExists(
-              'Element not found in StructureDefinition - ${child.raw}', url,),
+            'Element not found in StructureDefinition - ${child.raw}',
+            url,
+          ),
           Severity.error,
         );
       }
     } else {
       results = await _traverseAst(
-          url, child, originalPath, replacePath, elements, results, client,);
+        url,
+        child,
+        originalPath,
+        replacePath,
+        elements,
+        results,
+        client,
+      );
     }
   }
 
@@ -118,8 +166,16 @@ Future<ValidationResults> _propertyNode(
   }
 
   if (element != null) {
-    results = await _withElement(url, node, element, originalPath, replacePath,
-        elements, results, client,);
+    results = await _withElement(
+      url,
+      node,
+      element,
+      originalPath,
+      replacePath,
+      elements,
+      results,
+      client,
+    );
     results = await validateInvariants(
       url: url,
       node: node,
@@ -150,11 +206,27 @@ Future<ValidationResults> _withElement(
 ) async {
   final code = findCode(element, node.path);
   if (code != null) {
-    return _withCode(url, code, node, element, originalPath, replacePath,
-        elements, results, client,);
+    return _withCode(
+      url,
+      code,
+      node,
+      element,
+      originalPath,
+      replacePath,
+      elements,
+      results,
+      client,
+    );
   } else {
     return _withoutCode(
-        url, node, element, originalPath, replacePath, results, client,);
+      url,
+      node,
+      element,
+      originalPath,
+      replacePath,
+      results,
+      client,
+    );
   }
 }
 
@@ -170,22 +242,29 @@ Future<ValidationResults> _withoutCode(
   for (final ext in element.extension_ ?? <FhirExtension>[]) {
     final String url = ext.url.toString();
     if (url != null) {
-      final structureDefinition =
-          await getResource(url, client);
+      final structureDefinition = await getResource(url, client);
       if (structureDefinition != null &&
           structureDefinition['resourceType'] == 'StructureDefinition') {
         final newElements =
             extractElements(StructureDefinition.fromJson(structureDefinition));
-        return _traverseAst(structureDefinition['url'] as String?, node,
-            originalPath, replacePath, newElements, results, client,);
+        return _traverseAst(
+          structureDefinition['url'] as String?,
+          node,
+          originalPath,
+          replacePath,
+          newElements,
+          results,
+          client,
+        );
       }
     }
   }
   return results
     ..addResult(
-        node,
-        withUrlIfExists('Element not found in StructureDefinition', url),
-        Severity.error,);
+      node,
+      withUrlIfExists('Element not found in StructureDefinition', url),
+      Severity.error,
+    );
 }
 
 Future<ValidationResults> _withCode(
@@ -200,11 +279,28 @@ Future<ValidationResults> _withCode(
   Client? client,
 ) async {
   if (isPrimitiveType(code)) {
-    return _codeIsPrimitiveType(url, node, element, originalPath,
-        replacePath, elements, results, client,);
+    return _codeIsPrimitiveType(
+      url,
+      node,
+      element,
+      originalPath,
+      replacePath,
+      elements,
+      results,
+      client,
+    );
   } else {
-    return _codeIsComplexType(url, code, node, element, originalPath,
-        replacePath, elements, results, client,);
+    return _codeIsComplexType(
+      url,
+      code,
+      node,
+      element,
+      originalPath,
+      replacePath,
+      elements,
+      results,
+      client,
+    );
   }
 }
 
@@ -219,22 +315,26 @@ Future<ValidationResults> _codeIsComplexType(
   ValidationResults results,
   Client? client,
 ) async {
-  final structureDefinitionMap =
-      await getResource(code, client);
-  final structureDefinition =
-      structureDefinitionMap != null &&
-              structureDefinitionMap['resourceType'] == 'StructureDefinition'
-          ? StructureDefinition.fromJson(structureDefinitionMap)
-          : null;
+  final structureDefinitionMap = await getResource(code, client);
+  final structureDefinition = structureDefinitionMap != null &&
+          structureDefinitionMap['resourceType'] == 'StructureDefinition'
+      ? StructureDefinition.fromJson(structureDefinitionMap)
+      : null;
   if (structureDefinition == null) {
     return _noStructureDefinitionOrProfile(url, code, node, results);
   }
-  final newElements =
-      extractElements(structureDefinition);
+  final newElements = extractElements(structureDefinition);
   if (newElements.isNotEmpty) {
     if (node.value != null) {
       return _traverseAst(
-          url, node.value!, node.path, code, newElements, results, client,);
+        url,
+        node.value!,
+        node.path,
+        code,
+        newElements,
+        results,
+        client,
+      );
     } else {
       throw Exception('node is ${node.runtimeType} with null node.value');
     }
@@ -253,8 +353,9 @@ ValidationResults _noStructureDefinitionOrProfile(
       ..addResult(
         node,
         withUrlIfExists(
-            'No StructureDefinition or Profile found for Element type $code',
-            url,),
+          'No StructureDefinition or Profile found for Element type $code',
+          url,
+        ),
         Severity.error,
       );
 
@@ -270,13 +371,26 @@ Future<ValidationResults> _codeIsPrimitiveType(
 ) async {
   if (node.value is LiteralNode) {
     results = await _literalNode(
-        url, node.value! as LiteralNode, element, results, client,);
+      url,
+      node.value! as LiteralNode,
+      element,
+      results,
+      client,
+    );
   } else if (node.value is ArrayNode) {
-    results = await _arrayNode(url, node.value! as ArrayNode, originalPath,
-        replacePath, elements, results, client,);
+    results = await _arrayNode(
+      url,
+      node.value! as ArrayNode,
+      originalPath,
+      replacePath,
+      elements,
+      results,
+      client,
+    );
   } else {
     throw Exception(
-        'Primitive element is not a Primitive or a List: ${node.value.runtimeType}',);
+      'Primitive element is not a Primitive or a List: ${node.value.runtimeType}',
+    );
   }
   return results;
 }
@@ -303,7 +417,13 @@ Future<ValidationResults> _literalNode(
   results = await _checkEnumerations(element, value, results, node, client);
   results = _checkStringPatterns(url, element, value, results, node);
   results = _checkRangeConstraints(
-      url, primitiveClass, element, value, results, node,);
+    url,
+    primitiveClass,
+    element,
+    value,
+    results,
+    node,
+  );
   results = _checkDateTimeFormats(primitiveClass, value, results, node);
 
   return results;
@@ -327,8 +447,9 @@ Future<ValidationResults> _checkEnumerations(
       results.addResult(
         node,
         withUrlIfExists(
-            'Value "$value" is not a valid code in the required value set.',
-            element.binding!.valueSet.toString(),),
+          'Value "$value" is not a valid code in the required value set.',
+          element.binding!.valueSet.toString(),
+        ),
         Severity.error,
       );
     }
@@ -349,8 +470,9 @@ ValidationResults _checkStringPatterns(
       results.addResult(
         node,
         withUrlIfExists(
-            'Value "$value" does not match the required pattern: ${element.patternString}',
-            url,),
+          'Value "$value" does not match the required pattern: ${element.patternString}',
+          url,
+        ),
         Severity.error,
       );
     }
@@ -374,8 +496,9 @@ ValidationResults _checkRangeConstraints(
     results.addResult(
       node,
       withUrlIfExists(
-          'Value "$value" is less than the minimum allowed value: $minValue',
-          url,),
+        'Value "$value" is less than the minimum allowed value: $minValue',
+        url,
+      ),
       Severity.error,
     );
   }
@@ -385,8 +508,9 @@ ValidationResults _checkRangeConstraints(
     results.addResult(
       node,
       withUrlIfExists(
-          'Value "$value" is greater than the maximum allowed value: $maxValue',
-          url,),
+        'Value "$value" is greater than the maximum allowed value: $maxValue',
+        url,
+      ),
       Severity.error,
     );
   }
@@ -503,16 +627,25 @@ bool _isAResourceType(PropertyNode node, ElementDefinition? element) =>
     R4ResourceType.typesAsStrings.contains((node.value! as LiteralNode).value);
 
 ElementDefinition? _polymorphicElement(
-    String path, List<ElementDefinition> elements,) {
-  return elements.firstWhereOrNull((ElementDefinition element) =>
-      (element.path.value?.endsWith('[x]') ?? false) &&
-      path.startsWith(element.path.value!.replaceFirst('[x]', '')),);
+  String path,
+  List<ElementDefinition> elements,
+) {
+  return elements.firstWhereOrNull(
+    (ElementDefinition element) =>
+        (element.path.value?.endsWith('[x]') ?? false) &&
+        path.startsWith(element.path.value!.replaceFirst('[x]', '')),
+  );
 }
 
-ElementDefinition? _findElementDefinitionFromNode(String originalPath,
-    String replacePath, Node node, List<ElementDefinition> elements,) {
+ElementDefinition? _findElementDefinitionFromNode(
+  String originalPath,
+  String replacePath,
+  Node node,
+  List<ElementDefinition> elements,
+) {
   final cleanPath = cleanLocalPath(originalPath, replacePath, node.path);
   return elements.firstWhereOrNull(
-          (ElementDefinition element) => element.path == cleanPath,) ??
+        (ElementDefinition element) => element.path == cleanPath,
+      ) ??
       _polymorphicElement(cleanPath, elements);
 }

@@ -13,7 +13,8 @@ class JSONASTException implements Exception {
   /// * [source]: The source of the input, typically a file name or URL.
   /// * [line]: The line number where the error occurred.
   /// * [column]: The column number where the error occurred.
-  JSONASTException(this.rawMessage, this.input, this.source, this.line, this.column) {
+  JSONASTException(
+      this.rawMessage, this.input, this.source, this.line, this.column) {
     if (input != null) {
       _message = line != 0
           ? '$rawMessage\n${codeErrorFragment(input!, line, column)}'
@@ -52,7 +53,8 @@ String codeErrorFragment(
   final startLinePos = max(1, linePos - settings.extraLines) - 1;
   final int endLinePos = min(linePos + settings.extraLines, lines.length);
   final maxNumLength = endLinePos.toString().length;
-  final prevLines = printLines(lines, startLinePos, linePos, maxNumLength, settings);
+  final prevLines =
+      printLines(lines, startLinePos, linePos, maxNumLength, settings);
   final targetLineBeforeCursor = printLine(
     lines[linePos - 1].substring(0, columnPos - 1),
     linePos,
@@ -60,9 +62,12 @@ String codeErrorFragment(
     settings,
   );
   final cursorLine = '${repeatString(' ', targetLineBeforeCursor.length)}^';
-  final nextLines = printLines(lines, linePos, endLinePos, maxNumLength, settings);
+  final nextLines =
+      printLines(lines, linePos, endLinePos, maxNumLength, settings);
 
-  return <String>[prevLines, cursorLine, nextLines].where((String c) => c != 0).join('\n');
+  return <String>[prevLines, cursorLine, nextLines]
+      .where((String c) => c != 0)
+      .join('\n');
 }
 
 /// Represents a basic location (line and column).
@@ -74,7 +79,8 @@ class Loc {
 
 /// Represents a location segment with line, column, and offset.
 class Segment extends Loc {
-  Segment(int line, int column, this.offset) : super(line: line, column: column);
+  Segment(int line, int column, this.offset)
+      : super(line: line, column: column);
   final int offset;
 
   @override
@@ -315,8 +321,6 @@ class ArrayNode extends Node {
       loc == other.loc &&
       _compareDynamicList(children, other.children);
 }
-
-
 
 class PropertyNode extends Node {
   PropertyNode({String path = ''}) : super('Property') {

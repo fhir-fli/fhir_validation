@@ -12,18 +12,26 @@ Future<ValidationResults> validateCardinality(
   ValidationResults results,
   Client? client,
 ) async {
-  final currentPath =
-      cleanLocalPath(originalPath, replacePath, node.path);
+  final currentPath = cleanLocalPath(originalPath, replacePath, node.path);
   final missingPaths = <String>[];
 
   for (final element in elements) {
     final path = element.path.value;
     if (path != null) {
       if (!_isPathAlreadyChecked(missingPaths, path)) {
-        var foundNode = _findNodeRecursively(node, originalPath, replacePath,
-                cleanLocalPath(originalPath, replacePath, path),) ??
+        var foundNode = _findNodeRecursively(
+              node,
+              originalPath,
+              replacePath,
+              cleanLocalPath(originalPath, replacePath, path),
+            ) ??
             _checkForPolymorphism(
-                node, element, currentPath, originalPath, replacePath,);
+              node,
+              element,
+              currentPath,
+              originalPath,
+              replacePath,
+            );
 
         if (foundNode == null && path != originalPath) {
           missingPaths.add(path);
@@ -71,7 +79,9 @@ Future<ValidationResults> _validateElementCardinality({
     results.addMissingResult(
       path,
       withUrlIfExists(
-          '$path: minimum required = ${element.min}, but only found 0', url,),
+        '$path: minimum required = ${element.min}, but only found 0',
+        url,
+      ),
       Severity.error,
     );
   } else if (foundNode != null) {
@@ -84,7 +94,9 @@ Future<ValidationResults> _validateElementCardinality({
         results.addResult(
           node,
           withUrlIfExists(
-              'Too many elements for: $path. Maximum allowed is $max.', url,),
+            'Too many elements for: $path. Maximum allowed is $max.',
+            url,
+          ),
           Severity.error,
         );
       }
@@ -131,14 +143,12 @@ Future<ValidationResults> _validateNestedElements({
   if (element.type != null && element.type!.isNotEmpty) {
     final typeCode = findCode(element, foundNode.path);
     if (typeCode != null && !isPrimitiveType(typeCode)) {
-      final structureDefinitionMap =
-          await getResource(typeCode, client);
+      final structureDefinitionMap = await getResource(typeCode, client);
       if (structureDefinitionMap != null &&
           structureDefinitionMap['resourceType'] == 'StructureDefinition') {
         final structureDefinition =
             StructureDefinition.fromJson(structureDefinitionMap);
-        final newElements =
-            extractElements(structureDefinition);
+        final newElements = extractElements(structureDefinition);
         if (foundNode is ObjectNode) {
           results = await validateCardinality(
             structureDefinition.getUrl(),
@@ -157,9 +167,12 @@ Future<ValidationResults> _validateNestedElements({
 }
 
 Node? _findNodeRecursively(
-    Node node, String originalPath, String replacePath, String targetPath,) {
-  final cleanedNodePath =
-      cleanLocalPath(originalPath, replacePath, node.path);
+  Node node,
+  String originalPath,
+  String replacePath,
+  String targetPath,
+) {
+  final cleanedNodePath = cleanLocalPath(originalPath, replacePath, node.path);
 
   if (cleanedNodePath == targetPath) {
     return node;
@@ -183,7 +196,11 @@ Node? _findNodeRecursively(
     }
   } else if (node is PropertyNode && node.value != null) {
     final foundNode = _findNodeRecursively(
-        node.value!, originalPath, replacePath, targetPath,);
+      node.value!,
+      originalPath,
+      replacePath,
+      targetPath,
+    );
     if (foundNode != null) {
       return foundNode;
     }

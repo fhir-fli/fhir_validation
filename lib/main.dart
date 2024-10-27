@@ -10,23 +10,27 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        home: SafeArea(
-            child: Scaffold(
-                body: Center(
-      child: ElevatedButton(
-        onPressed: () async {
-          await fhirValidationTest();
-        },
-        child: const SizedBox(
-          child: Center(
-              child: Text(
-            'Press me',
-            style: TextStyle(fontSize: 20),
-          ),),
-          height: 200,
-          width: 200,
+      home: SafeArea(
+        child: Scaffold(
+          body: Center(
+            child: ElevatedButton(
+              onPressed: () async {
+                await fhirValidationTest();
+              },
+              child: const SizedBox(
+                child: Center(
+                  child: Text(
+                    'Press me',
+                    style: TextStyle(fontSize: 20),
+                  ),
+                ),
+                height: 200,
+                width: 200,
+              ),
+            ),
+          ),
         ),
       ),
-    ),),),);
+    );
   }
 }

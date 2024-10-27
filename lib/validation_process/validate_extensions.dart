@@ -18,16 +18,13 @@ Future<ValidationResults> validateExtensions(
           ?.first;
       final extensionDefinition =
           await getResource(extensionUrl.toString(), client);
-      final structureDefinition =
-          extensionDefinition != null &&
-                  extensionDefinition['resourceType'] == 'StructureDefinition'
-              ? StructureDefinition.fromJson(extensionDefinition)
-              : null;
+      final structureDefinition = extensionDefinition != null &&
+              extensionDefinition['resourceType'] == 'StructureDefinition'
+          ? StructureDefinition.fromJson(extensionDefinition)
+          : null;
       if (structureDefinition != null) {
-        final extensionElements =
-            extractElements(structureDefinition);
-        final extensionNode =
-            node.getPropertyNode('_${element.path.value!}');
+        final extensionElements = extractElements(structureDefinition);
+        final extensionNode = node.getPropertyNode('_${element.path.value!}');
         if (extensionNode != null) {
           results = await validateStructure(
             node: extensionNode,
