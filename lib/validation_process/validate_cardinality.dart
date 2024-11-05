@@ -1,8 +1,10 @@
 import 'package:collection/collection.dart';
 import 'package:fhir_r4/fhir_r4.dart';
-import 'package:http/http.dart';
 import 'package:fhir_validation/fhir_validation.dart';
+import 'package:http/http.dart';
 
+/// Validates the cardinality of a [Node] against the corresponding
+/// [ElementDefinition].
 Future<ValidationResults> validateCardinality(
   String? url,
   ObjectNode node,
@@ -12,6 +14,7 @@ Future<ValidationResults> validateCardinality(
   ValidationResults results,
   Client? client,
 ) async {
+  var newResults = results.copyWith();
   final currentPath = cleanLocalPath(originalPath, replacePath, node.path);
   final missingPaths = <String>[];
 
@@ -19,7 +22,7 @@ Future<ValidationResults> validateCardinality(
     final path = element.path.value;
     if (path != null) {
       if (!_isPathAlreadyChecked(missingPaths, path)) {
-        var foundNode = _findNodeRecursively(
+        final foundNode = _findNodeRecursively(
               node,
               originalPath,
               replacePath,
@@ -37,7 +40,7 @@ Future<ValidationResults> validateCardinality(
           missingPaths.add(path);
         }
 
-        results = await _validateElementCardinality(
+        newResults = await _validateElementCardinality(
           url: url,
           node: node,
           element: element,
@@ -46,14 +49,14 @@ Future<ValidationResults> validateCardinality(
           originalPath: originalPath,
           replacePath: replacePath,
           elements: elements,
-          results: results,
+          results: newResults,
           client: client,
         );
       }
     }
   }
 
-  return results;
+  return newResults;
 }
 
 bool _isPathAlreadyChecked(List<String> missingPaths, String path) {
@@ -86,7 +89,7 @@ Future<ValidationResults> _validateElementCardinality({
     );
   } else if (foundNode != null) {
     // Check for too many occurrences of an element
-    if (element.max != null && element.max != '*') {
+    if (element.max != null && element.max!.value != '*') {
       final max = int.tryParse(element.max!.value!);
       if (max != null &&
           foundNode is ArrayNode &&
@@ -179,7 +182,7 @@ Node? _findNodeRecursively(
   }
 
   if (node is ObjectNode) {
-    for (var property in node.children) {
+    for (final property in node.children) {
       final foundNode =
           _findNodeRecursively(property, originalPath, replacePath, targetPath);
       if (foundNode != null) {
@@ -187,7 +190,7 @@ Node? _findNodeRecursively(
       }
     }
   } else if (node is ArrayNode) {
-    for (var child in node.children) {
+    for (final child in node.children) {
       final foundNode =
           _findNodeRecursively(child, originalPath, replacePath, targetPath);
       if (foundNode != null) {

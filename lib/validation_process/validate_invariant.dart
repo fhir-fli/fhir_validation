@@ -1,8 +1,9 @@
 import 'package:fhir_r4/fhir_r4.dart';
+import 'package:fhir_validation/fhir_validation.dart';
 import 'package:http/http.dart';
 
-import 'package:fhir_validation/fhir_validation.dart';
-
+/// Validates the invariants of a [Node] against the corresponding
+/// [ElementDefinition].
 Future<ValidationResults> validateInvariants({
   required Node node,
   required ElementDefinition element,
@@ -42,7 +43,7 @@ dynamic _getContext(Node node) {
   // Convert Node to Map to use as context
   dynamic context = nodeToMap(node);
 
-  if (node is PropertyNode) {
+  if (node is PropertyNode && context is Map) {
     final finalPath = node.path.split('.').last;
     context = context[finalPath];
   }
@@ -50,6 +51,7 @@ dynamic _getContext(Node node) {
   return context;
 }
 
+/// Evaluates a FHIRPath expression against a context.
 bool evaluateConstraint(
   dynamic context,
   String expression,
@@ -67,6 +69,7 @@ bool evaluateConstraint(
               ((result.first as FhirBoolean).value ?? false)));
 }
 
+/// Converts a [Node] to a [Map] for use as a FHIRPath context.
 dynamic nodeToMap(Node node) {
   if (node is LiteralNode) {
     return node.value;
@@ -101,7 +104,10 @@ List<dynamic> _arrayNodeToList(ArrayNode node) {
 bool _constraintsIDontWantToDo(Node node, String expression) {
   if (node.path == 'Observation.subject' &&
       expression ==
-          "reference.startsWith('#').not() or (reference.substring(1).trace('url') in %rootResource.contained.id.trace('ids')) or (reference='#' and %rootResource!=%resource)") {
+          "reference.startsWith('#').not() or "
+              "(reference.substring(1).trace('url') in "
+              "%rootResource.contained.id.trace('ids')) or "
+              "(reference='#' and %rootResource!=%resource)") {
     return true;
   } else if (node is PropertyNode &&
       node.value is ArrayNode &&

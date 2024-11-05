@@ -1,5 +1,4 @@
-import 'dart:math';
-import 'package:grapheme_splitter/grapheme_splitter.dart' show GraphemeSplitter;
+// ignore_for_file: constant_identifier_names, avoid_dynamic_calls
 
 import 'dart:math';
 import 'package:grapheme_splitter/grapheme_splitter.dart' show GraphemeSplitter;
@@ -14,7 +13,12 @@ class JSONASTException implements Exception {
   /// * [line]: The line number where the error occurred.
   /// * [column]: The column number where the error occurred.
   JSONASTException(
-      this.rawMessage, this.input, this.source, this.line, this.column) {
+    this.rawMessage,
+    this.input,
+    this.source,
+    this.line,
+    this.column,
+  ) {
     if (input != null) {
       _message = line != 0
           ? '$rawMessage\n${codeErrorFragment(input!, line, column)}'
@@ -24,10 +28,19 @@ class JSONASTException implements Exception {
     }
   }
 
+  /// The raw error message describing the issue.
   final String rawMessage;
+
+  /// The input JSON string where the error occurred.
   final String? input;
+
+  /// The source of the input, typically a file name or URL.
   final String source;
+
+  /// The line number where the error occurred.
   final int line;
+
+  /// The column number where the error occurred.
   final int column;
   String? _message;
 
@@ -72,18 +85,27 @@ String codeErrorFragment(
 
 /// Represents a basic location (line and column).
 class Loc {
-  Loc({required this.line, required this.column});
+  /// Constructor for the [Loc] class.
+  const Loc({required this.line, required this.column});
+
+  /// The line number.
   final int line;
+
+  /// The column number.
   final int column;
 }
 
 /// Represents a location segment with line, column, and offset.
 class Segment extends Loc {
-  Segment(int line, int column, this.offset)
+  /// Constructor for the [Segment] class.
+  const Segment(int line, int column, this.offset)
       : super(line: line, column: column);
+
+  /// The character offset.
   final int offset;
 
   @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes, hash_and_equals
   bool operator ==(Object other) =>
       other is Segment &&
       line == other.line &&
@@ -96,21 +118,14 @@ class Segment extends Loc {
   }
 }
 
-/// Represents a location within the input source, spanning from a start segment to an end segment.
+/// Represents a location within the input source, spanning from a start
+/// segment to an end segment.
 class Location {
-  Location(this.start, this.end, [this.source = ""]);
-  final Segment start;
-  final Segment end;
-  final String source;
+  /// Constructor for the [Location] class.
+  Location(this.start, this.end, [this.source = '']);
 
-  @override
-  bool operator ==(Object other) =>
-      other is Location &&
-      start == other.start &&
-      end == other.end &&
-      source == other.source;
-
-  static Location create(
+  /// Creates a new location instance.
+  factory Location.create(
     int startLine,
     int startColumn,
     int startOffset,
@@ -124,6 +139,23 @@ class Location {
     return Location(startSegment, endSegment, source);
   }
 
+  /// The starting segment.
+  final Segment start;
+
+  /// The ending segment.
+  final Segment end;
+
+  /// The source of the input, typically a file name or URL.
+  final String source;
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes, hash_and_equals
+  bool operator ==(Object other) =>
+      other is Location &&
+      start == other.start &&
+      end == other.end &&
+      source == other.source;
+
   @override
   String toString() {
     final src = source.isNotEmpty ? '($source)' : '';
@@ -133,17 +165,38 @@ class Location {
 
 /// Represents various token types used in parsing JSON.
 enum TokenType {
-  LEFT_BRACE, // {
-  RIGHT_BRACE, // }
-  LEFT_BRACKET, // [
-  RIGHT_BRACKET, // ]
-  COLON, // :
-  COMMA, // ,
+  /// {
+  LEFT_BRACE,
+
+  /// }
+  RIGHT_BRACE,
+
+  /// [
+  LEFT_BRACKET,
+
+  /// ]
+  RIGHT_BRACKET,
+
+  /// :
+  COLON,
+
+  /// ,
+  COMMA,
+
+  /// A string value.
   STRING,
+
+  /// A number value.
   NUMBER,
-  TRUE, // true
-  FALSE, // false
-  NULL // null
+
+  /// true
+  TRUE,
+
+  /// false
+  FALSE,
+
+  /// null
+  NULL
 }
 
 /// Maps punctuators to their respective token types.
@@ -165,27 +218,49 @@ final Map<String, TokenType> keywordTokensMap = <String, TokenType>{
 
 /// Represents a single token with its type, line, column, and value.
 class Token {
+  /// Constructor for the [Token] class.
   Token(this.type, this.line, this.column, this.index, this.value);
+
+  /// The token type.
   final TokenType? type;
+
+  /// The line number.
   final int line;
+
+  /// The column number.
   final int column;
+
+  /// The character offset.
   final int index;
+
+  /// The token value.
   final String? value;
+
+  /// The location of the token within the input source.
   Location? loc;
 }
 
 /// Base class representing a node in the abstract syntax tree (AST).
 class Node {
+  /// Constructor for the [Node] class.
   Node(this.type, {this.loc, this.parent});
+
+  /// The node type.
   final String type;
+
+  /// The location of the node within the input source.
   Location? loc;
-  Node? parent; // Reference to the parent node, useful for traversing the AST.
+
+  /// Reference to the parent node, useful for traversing the AST.
+  Node? parent;
+
+  /// The path to the node in the AST.
   String path = '';
 
   /// Gets a child node associated with a given property name in an object.
   Node? getPropertyNode(String propertyName) {
     if (this is ObjectNode) {
-      for (var property in (this as ObjectNode).children) {
+      for (final property in (this as ObjectNode).children) {
         if (property.key?.value == propertyName) {
           return property.value;
         }
@@ -196,16 +271,16 @@ class Node {
 
   /// Extracts "profile" nodes from the meta section of the AST.
   List<LiteralNode> extractProfileNodes() {
-    var profileNodes = <LiteralNode>[];
+    final profileNodes = <LiteralNode>[];
 
     void traverse(Node node, String path) {
       if (node is ObjectNode) {
-        for (var property in node.children) {
+        for (final property in node.children) {
           final newPath = path.isEmpty
               ? property.key?.value
               : '$path.${property.key?.value}';
           if (newPath == 'meta.profile' && property.value is ArrayNode) {
-            for (var item in (property.value! as ArrayNode).children) {
+            for (final item in (property.value! as ArrayNode).children) {
               if (item is LiteralNode) {
                 profileNodes.add(item);
               }
@@ -242,7 +317,7 @@ String getNodePath(Node node) {
       segments.add(current.key!.value);
     } else if (current.parent is ArrayNode) {
       final arrayNode = current.parent! as ArrayNode;
-      var index = arrayNode.children.indexOf(current);
+      final index = arrayNode.children.indexOf(current);
       segments.add('[$index]');
     }
     current = current.parent;
@@ -254,11 +329,17 @@ String getNodePath(Node node) {
 
 /// Represents a value node in the AST.
 class ValueNode extends Node {
+  /// Constructor for the [ValueNode] class.
   ValueNode(this.value, this.raw) : super('Identifier');
+
+  /// The value of the node.
   final String value;
+
+  /// The raw value of the node.
   final String? raw;
 
   @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes, hash_and_equals
   bool operator ==(Object other) =>
       other is ValueNode &&
       type == other.type &&
@@ -274,12 +355,16 @@ class ValueNode extends Node {
 
 /// Represents an object node in the AST.
 class ObjectNode extends Node {
+  /// Constructor for the [ObjectNode] class.
   ObjectNode({String path = ''}) : super('Object') {
     this.path = path;
   }
+
+  /// The children nodes of the object.
   final List<PropertyNode> children = <PropertyNode>[];
 
   @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes, hash_and_equals
   bool operator ==(Object other) =>
       other is ObjectNode &&
       type == other.type &&
@@ -309,12 +394,16 @@ bool _compareDynamicList(List<dynamic>? l, List<dynamic>? other) {
 
 /// Represents an array node in the AST.
 class ArrayNode extends Node {
+  /// Constructor for the [ArrayNode] class.
   ArrayNode({String path = ''}) : super('Array') {
     this.path = path;
   }
+
+  /// The children nodes of the array.
   final List<Node> children = <Node>[];
 
   @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes, hash_and_equals
   bool operator ==(Object other) =>
       other is ArrayNode &&
       type == other.type &&
@@ -322,16 +411,27 @@ class ArrayNode extends Node {
       _compareDynamicList(children, other.children);
 }
 
+/// Represents a property node in the AST.
 class PropertyNode extends Node {
+  /// Constructor for the [PropertyNode] class.
   PropertyNode({String path = ''}) : super('Property') {
     this.path = path;
   }
+
+  /// The index of the property.
   final List<Node> children = <Node>[];
+
+  /// The index of the property.
   int? index;
+
+  /// The key of the property.
   ValueNode? key;
+
+  /// The value of the property.
   Node? value;
 
   @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes, hash_and_equals
   bool operator ==(Object other) =>
       other is PropertyNode &&
       type == other.type &&
@@ -342,14 +442,21 @@ class PropertyNode extends Node {
       _compareDynamicList(children, other.children);
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 class LiteralNode extends Node {
+  /// Constructor for the [LiteralNode] class.
   LiteralNode(this.value, this.raw, {String path = ''}) : super('Literal') {
     this.path = path;
   }
+
+  /// The value of the node.
   final dynamic value;
+
+  /// The raw value of the node.
   final String? raw;
 
   @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes, hash_and_equals
   bool operator ==(Object other) =>
       other is LiteralNode &&
       type == other.type &&
@@ -363,12 +470,19 @@ class LiteralNode extends Node {
   }
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 class ValueIndex<T> {
+  /// Constructor for the [ValueIndex] class.
   ValueIndex(this.value, this.index);
+
+  /// The value of the node.
   final T value;
+
+  /// The index of the node.
   final int index;
 
   @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes, hash_and_equals
   bool operator ==(Object other) =>
       other is ValueIndex<T> && value == other.value && index == other.index;
 }
@@ -392,15 +506,30 @@ enum _NumberState {
   EXP_DIGIT_OR_SIGN
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 class Settings {
-  Settings(
-      {this.extraLines = 2, this.tabSize = 4, this.loc = true, this.source});
+  /// Constructor for the [Settings] class.
+  Settings({
+    this.extraLines = 2,
+    this.tabSize = 4,
+    this.loc = true,
+    this.source,
+  });
+
+  /// The number of extra lines to display around an error.
   final int extraLines;
+
+  /// The number of spaces to use for tab characters.
   final int tabSize;
+
+  /// Whether to include location information in the AST.
   final bool loc;
+
+  /// The source of the input, typically a file name or URL.
   final String? source;
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 String repeatString(String str, int n) {
   if (n == 0) {
     return '';
@@ -414,6 +543,7 @@ String repeatString(String str, int n) {
   return strBuf.toString();
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 String printLine(
   String line,
   int position,
@@ -426,6 +556,7 @@ String printLine(
   return '$formattedNum | ${line.replaceAll('\t', tabReplacement)}';
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 String printLines(
   List<String> lines,
   int start,
@@ -446,6 +577,7 @@ String printLines(
       .join('\n');
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 String substring(String str, int start, [int? end]) {
   end ??= start + 1;
   final splitter = GraphemeSplitter();
@@ -457,6 +589,7 @@ String substring(String str, int start, [int? end]) {
   return strBuffer.toString();
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 String safeSubstring(String str, int start, int end) {
   final len = str.length;
   if (len > start) {
@@ -466,27 +599,32 @@ String safeSubstring(String str, int start, int end) {
   return '';
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 String unexpectedSymbol(String symbol, String source, int line, int column) {
   final sourceOrEmpty = source != '' ? '$source:' : '';
   final positionStr = '$sourceOrEmpty$line:$column';
   return 'Unexpected symbol <$symbol> at $positionStr';
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 String unexpectedEnd() => 'Unexpected end of input';
 
+/// Tokenizes a JSON string into a list of tokens.
 String unexpectedToken(String token, String source, int line, int column) {
   final sourceOrEmpty = source != '' ? '$source:' : '';
   final positionStr = '$sourceOrEmpty$line:$column';
   return 'Unexpected token <$token> at $positionStr';
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 ValueIndex<ObjectNode>? parseObject(
   String input,
   List<Token> tokenList,
-  int index,
+  int oldIndex,
   Settings settings,
   String path,
 ) {
+  var index = oldIndex;
   late Token startToken;
   final object = ObjectNode(path: path);
   var state = _ObjectState._START_;
@@ -610,13 +748,15 @@ ValueIndex<ObjectNode>? parseObject(
   throw errorEof(input, tokenList, settings);
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 ValueIndex<PropertyNode>? parseProperty(
   String input,
   List<Token> tokenList,
-  int index,
+  int oldIndex,
   Settings settings,
   String path,
 ) {
+  var index = oldIndex;
   late Token startToken;
   final property = PropertyNode(path: path);
   var state = _PropertyState._START_;
@@ -631,12 +771,13 @@ ValueIndex<PropertyNode>? parseProperty(
           if (value == null) {
             return null;
           }
-          final key = ValueNode(value, token.value);
-          key.loc = token.loc;
-          key.parent = property; // Set parent reference
+          final key = ValueNode(value, token.value)
+            ..loc = token.loc
+            ..parent = property;
           startToken = token;
-          property.key = key;
-          property.path = '$path$value'; // Update path
+          property
+            ..key = key
+            ..path = '$path$value';
           state = _PropertyState.KEY;
           index++;
         } else {
@@ -685,13 +826,15 @@ ValueIndex<PropertyNode>? parseProperty(
   return null;
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 ValueIndex<ArrayNode>? parseArray(
   String input,
   List<Token> tokenList,
-  int index,
+  int oldIndex,
   Settings settings,
   String path,
 ) {
+  var index = oldIndex;
   late Token startToken;
   final array = ArrayNode(path: path);
   var state = _ArrayState._START_;
@@ -785,6 +928,7 @@ ValueIndex<ArrayNode>? parseArray(
   throw errorEof(input, tokenList, settings);
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 ValueIndex<LiteralNode>? parseLiteral(
   String input,
   List<Token> tokenList,
@@ -804,7 +948,7 @@ ValueIndex<LiteralNode>? parseLiteral(
     case TokenType.NUMBER:
       if (token.value != null) {
         value = int.tryParse(token.value!);
-        value ??= double.tryParse(token.value!) ?? null;
+        value ??= double.tryParse(token.value!);
       }
     case TokenType.TRUE:
       value = true;
@@ -812,17 +956,28 @@ ValueIndex<LiteralNode>? parseLiteral(
       value = false;
     case TokenType.NULL:
       value = null;
-    default:
+    case TokenType.COLON:
+    case TokenType.COMMA:
+    case TokenType.LEFT_BRACE:
+    case TokenType.RIGHT_BRACE:
+    case TokenType.LEFT_BRACKET:
+    case TokenType.RIGHT_BRACKET:
+    case null:
       return null;
   }
 
-  final literal = LiteralNode(value, token.value, path: path);
-  literal.loc = token.loc;
+  final literal = LiteralNode(value, token.value, path: path)..loc = token.loc;
   return ValueIndex<LiteralNode>(literal, index + 1);
 }
 
-typedef _parserFun = ValueIndex<dynamic>? Function(String input,
-    List<Token> tokenList, int index, Settings settings, String path);
+// ignore: camel_case_types
+typedef _parserFun = ValueIndex<dynamic>? Function(
+  String input,
+  List<Token> tokenList,
+  int index,
+  Settings settings,
+  String path,
+);
 
 List<_parserFun> _parsersList = <_parserFun>[
   parseLiteral,
@@ -876,6 +1031,7 @@ ValueIndex<dynamic> _parseValue(
   }
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 Node parse(String input, Settings settings, String path) {
   final tokenList = tokenize(input, settings);
 
@@ -906,6 +1062,7 @@ Node parse(String input, Settings settings, String path) {
   );
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 JSONASTException errorEof(
   String input,
   List<dynamic> tokenList,
@@ -913,13 +1070,18 @@ JSONASTException errorEof(
 ) {
   final loc = tokenList.isNotEmpty
       ? tokenList.last.loc.end as Loc
-      : Loc(line: 1, column: 1);
+      : const Loc(line: 1, column: 1);
   final src = settings.source ?? '';
   return JSONASTException(unexpectedEnd(), input, src, loc.line, loc.column);
 }
 
+// ignore: camel_case_types
 typedef _tokenParser = Token? Function(
-    String input, int index, int line, int column);
+  String input,
+  int index,
+  int line,
+  int column,
+);
 
 List<_tokenParser> _parsers = <_tokenParser>[
   parseChar,
@@ -938,14 +1100,31 @@ Token? _parseToken(String input, int index, int line, int column) {
   return null;
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 class Position {
+  /// Constructor for the [Position] class.
   Position(this.index, this.line, this.column);
+
+  /// The character offset.
   final int index;
+
+  /// The line number.
   final int line;
+
+  /// The column number.
   final int column;
 }
 
-Position? parseWhitespace(String input, int index, int line, int column) {
+/// Tokenizes a JSON string into a list of tokens.
+Position? parseWhitespace(
+  String input,
+  int oldIndex,
+  int oldLine,
+  int oldColumn,
+) {
+  var index = oldIndex;
+  var line = oldLine;
+  var column = oldColumn;
   final char = input[index];
 
   if (char == '\r') {
@@ -972,6 +1151,7 @@ Position? parseWhitespace(String input, int index, int line, int column) {
   return Position(index, line, column);
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 Token? parseChar(String input, int index, int line, int column) {
   final char = input[index];
   if (punctuatorTokensMap.containsKey(char)) {
@@ -982,6 +1162,7 @@ Token? parseChar(String input, int index, int line, int column) {
   return null;
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 Token? parseKeyword(String input, int index, int line, int column) {
   final entries = keywordTokensMap.entries;
   for (final entry in entries) {
@@ -996,7 +1177,9 @@ Token? parseKeyword(String input, int index, int line, int column) {
   return null;
 }
 
-Token? parseString(String input, int index, int line, int column) {
+/// Tokenizes a JSON string into a list of tokens.
+Token? parseString(String input, int oldIndex, int line, int column) {
+  var index = oldIndex;
   final startIndex = index;
   var state = _StringState._START_;
   final stringBuffer = StringBuffer();
@@ -1056,7 +1239,9 @@ Token? parseString(String input, int index, int line, int column) {
   return null;
 }
 
-Token? parseNumber(String input, int index, int line, int column) {
+/// Tokenizes a JSON string into a list of tokens.
+Token? parseNumber(String input, int oldIndex, int line, int column) {
+  var index = oldIndex;
   final startIndex = index;
   var passedValueIndex = index;
   var state = _NumberState._START_;
@@ -1161,11 +1346,12 @@ Token? parseNumber(String input, int index, int line, int column) {
   return null;
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 List<Token> tokenize(String input, Settings settings) {
   var line = 1;
   var column = 1;
   var index = 0;
-  var tokens = <Token>[];
+  final tokens = <Token>[];
 
   while (index < input.length) {
     final whitespace = parseWhitespace(input, index, line, column);
@@ -1209,16 +1395,19 @@ List<Token> tokenize(String input, Settings settings) {
 
 // HELPERS
 
+/// Tokenizes a JSON string into a list of tokens.
 bool isDigit1to9(String char) {
   final charCode = char.codeUnitAt(0);
   return charCode >= '1'.codeUnitAt(0) && charCode <= '9'.codeUnitAt(0);
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 bool isDigit(String char) {
   final charCode = char.codeUnitAt(0);
   return charCode >= '0'.codeUnitAt(0) && charCode <= '9'.codeUnitAt(0);
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 bool isHex(String char) {
   final charCode = char.codeUnitAt(0);
   return isDigit(char) ||
@@ -1226,10 +1415,12 @@ bool isHex(String char) {
       (charCode >= 'A'.codeUnitAt(0) && charCode <= 'F'.codeUnitAt(0));
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 bool isExp(String char) {
   return char == 'e' || char == 'E';
 }
 
+/// Tokenizes a JSON string into a list of tokens.
 final Map<String, int> escapes = <String, int>{
   '"': 0, // Quotation mask
   r'\': 1, // Reverse solidus

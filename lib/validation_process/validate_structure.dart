@@ -1,8 +1,9 @@
 import 'package:collection/collection.dart';
 import 'package:fhir_r4/fhir_r4.dart';
-import 'package:http/http.dart';
 import 'package:fhir_validation/fhir_validation.dart';
+import 'package:http/http.dart';
 
+/// Validate the structure of a FHIR resource against a StructureDefinition.
 Future<ValidationResults> validateStructure({
   required Node node,
   required List<ElementDefinition> elements,
@@ -77,14 +78,15 @@ Future<ValidationResults> _objectNode(
   ValidationResults results,
   Client? client,
 ) async {
-  for (var property in node.children) {
-    results = await _propertyNode(
+  var newResults = results.copyWith();
+  for (final property in node.children) {
+    newResults = await _propertyNode(
       url,
       property,
       originalPath,
       replacePath,
       elements,
-      results,
+      newResults,
       client,
     );
   }
@@ -92,16 +94,16 @@ Future<ValidationResults> _objectNode(
   final element =
       _findElementDefinitionFromNode(originalPath, replacePath, node, elements);
   if (element != null) {
-    results = await validateInvariants(
+    newResults = await validateInvariants(
       url: url,
       node: node,
       element: element,
-      results: results,
+      results: newResults,
       client: client,
     );
   }
 
-  return results;
+  return newResults;
 }
 
 Future<ValidationResults> _arrayNode(
@@ -113,6 +115,7 @@ Future<ValidationResults> _arrayNode(
   ValidationResults results,
   Client? client,
 ) async {
+  var newResults = results.copyWith();
   for (final child in node.children) {
     if (child is LiteralNode) {
       final element = _findElementDefinitionFromNode(
@@ -122,9 +125,10 @@ Future<ValidationResults> _arrayNode(
         elements,
       );
       if (element != null) {
-        results = await _literalNode(url, child, element, results, client);
+        newResults =
+            await _literalNode(url, child, element, newResults, client);
       } else {
-        results.addResult(
+        newResults.addResult(
           child,
           withUrlIfExists(
             'Element not found in StructureDefinition - ${child.raw}',
@@ -134,19 +138,19 @@ Future<ValidationResults> _arrayNode(
         );
       }
     } else {
-      results = await _traverseAst(
+      newResults = await _traverseAst(
         url,
         child,
         originalPath,
         replacePath,
         elements,
-        results,
+        newResults,
         client,
       );
     }
   }
 
-  return results;
+  return newResults;
 }
 
 Future<ValidationResults> _propertyNode(
@@ -158,40 +162,41 @@ Future<ValidationResults> _propertyNode(
   ValidationResults results,
   Client? client,
 ) async {
-  var element =
+  var newResults = results.copyWith();
+  final element =
       _findElementDefinitionFromNode(originalPath, replacePath, node, elements);
 
   if (_isAResourceType(node, element)) {
-    return results;
+    return newResults;
   }
 
   if (element != null) {
-    results = await _withElement(
+    newResults = await _withElement(
       url,
       node,
       element,
       originalPath,
       replacePath,
       elements,
-      results,
+      newResults,
       client,
     );
-    results = await validateInvariants(
+    newResults = await validateInvariants(
       url: url,
       node: node,
       element: element,
-      results: results,
+      results: newResults,
       client: client,
     );
   } else {
-    results.addResult(
+    newResults.addResult(
       node,
       withUrlIfExists('Element not found in StructureDefinition', url),
       Severity.error,
     );
   }
 
-  return results;
+  return newResults;
 }
 
 Future<ValidationResults> _withElement(
@@ -240,23 +245,21 @@ Future<ValidationResults> _withoutCode(
   Client? client,
 ) async {
   for (final ext in element.extension_ ?? <FhirExtension>[]) {
-    final String url = ext.url.toString();
-    if (url != null) {
-      final structureDefinition = await getResource(url, client);
-      if (structureDefinition != null &&
-          structureDefinition['resourceType'] == 'StructureDefinition') {
-        final newElements =
-            extractElements(StructureDefinition.fromJson(structureDefinition));
-        return _traverseAst(
-          structureDefinition['url'] as String?,
-          node,
-          originalPath,
-          replacePath,
-          newElements,
-          results,
-          client,
-        );
-      }
+    final url = ext.url.toString();
+    final structureDefinition = await getResource(url, client);
+    if (structureDefinition != null &&
+        structureDefinition['resourceType'] == 'StructureDefinition') {
+      final newElements =
+          extractElements(StructureDefinition.fromJson(structureDefinition));
+      return _traverseAst(
+        structureDefinition['url'] as String?,
+        node,
+        originalPath,
+        replacePath,
+        newElements,
+        results,
+        client,
+      );
     }
   }
   return results
@@ -369,30 +372,32 @@ Future<ValidationResults> _codeIsPrimitiveType(
   ValidationResults results,
   Client? client,
 ) async {
+  var newResults = results.copyWith();
   if (node.value is LiteralNode) {
-    results = await _literalNode(
+    newResults = await _literalNode(
       url,
       node.value! as LiteralNode,
       element,
-      results,
+      newResults,
       client,
     );
   } else if (node.value is ArrayNode) {
-    results = await _arrayNode(
+    newResults = await _arrayNode(
       url,
       node.value! as ArrayNode,
       originalPath,
       replacePath,
       elements,
-      results,
+      newResults,
       client,
     );
   } else {
     throw Exception(
-      'Primitive element is not a Primitive or a List: ${node.value.runtimeType}',
+      'Primitive element is not a Primitive or a List: '
+      '${node.value.runtimeType}',
     );
   }
-  return results;
+  return newResults;
 }
 
 Future<ValidationResults> _literalNode(
@@ -414,19 +419,20 @@ Future<ValidationResults> _literalNode(
   }
 
   // Add additional value domain checks here
-  results = await _checkEnumerations(element, value, results, node, client);
-  results = _checkStringPatterns(url, element, value, results, node);
-  results = _checkRangeConstraints(
+  var newResults =
+      await _checkEnumerations(element, value, results, node, client);
+  newResults = _checkStringPatterns(url, element, value, newResults, node);
+  newResults = _checkRangeConstraints(
     url,
     primitiveClass,
     element,
     value,
-    results,
+    newResults,
     node,
   );
-  results = _checkDateTimeFormats(primitiveClass, value, results, node);
+  newResults = _checkDateTimeFormats(primitiveClass, value, newResults, node);
 
-  return results;
+  return newResults;
 }
 
 Future<ValidationResults> _checkEnumerations(
@@ -470,7 +476,8 @@ ValidationResults _checkStringPatterns(
       results.addResult(
         node,
         withUrlIfExists(
-          'Value "$value" does not match the required pattern: ${element.patternString}',
+          'Value "$value" does not match the required pattern: '
+          '${element.patternString}',
           url,
         ),
         Severity.error,
@@ -645,7 +652,7 @@ ElementDefinition? _findElementDefinitionFromNode(
 ) {
   final cleanPath = cleanLocalPath(originalPath, replacePath, node.path);
   return elements.firstWhereOrNull(
-        (ElementDefinition element) => element.path == cleanPath,
+        (ElementDefinition element) => element.path.value == cleanPath,
       ) ??
       _polymorphicElement(cleanPath, elements);
 }

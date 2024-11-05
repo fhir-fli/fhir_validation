@@ -1,14 +1,20 @@
 import 'package:fhir_r4/fhir_r4.dart';
 import 'package:fhir_validation/fhir_validation.dart';
 
+/// [ValidationResults]
 class ValidationResults {
+  /// List of results from validation process
   final List<ValidationDiagnostics> results = <ValidationDiagnostics>[];
+
+  /// List of missing results from validation process
   final List<ValidationDiagnostics> missingResults = <ValidationDiagnostics>[];
 
+  /// Add a result to the list of results
   void addResult(Node? node, String newItem, Severity severity) {
     results.add(ValidationDiagnostics.create(node, newItem, severity));
   }
 
+  /// Add a missing result to the list of missing results
   void addMissingResult(String path, String newItem, Severity severity) {
     final index = missingResults.indexWhere(
       (ValidationDiagnostics element) => path.startsWith(element.path),
@@ -18,6 +24,7 @@ class ValidationResults {
     }
   }
 
+  /// Combine the results of two ValidationResults objects
   void combineResults(ValidationResults other) {
     results.addAll(other.results);
     missingResults.addAll(other.missingResults);
@@ -27,6 +34,7 @@ class ValidationResults {
     results.addAll(_cleanMissingResults());
   }
 
+  /// Convert the results to a JSON object
   Map<String, dynamic> toJson() {
     _joinResults();
     final error = results
@@ -113,6 +121,7 @@ class ValidationResults {
         ],
       );
 
+  /// Convert the results to an OperationOutcome object
   OperationOutcome toOperationOutcome() {
     _joinResults();
     final error = results
@@ -132,24 +141,21 @@ class ValidationResults {
               element.severity == Severity.information,
         )
         .toList();
-    final issues = <OperationOutcomeIssue>[];
-    issues.addAll(
-      error.map(_makeOperationOutcomeIssue).toList(),
-    );
-    issues.addAll(
-      warning.map(_makeOperationOutcomeIssue).toList(),
-    );
-    issues.addAll(
-      information.map(_makeOperationOutcomeIssue).toList(),
-    );
+    final issues = <OperationOutcomeIssue>[
+      ...error.map(_makeOperationOutcomeIssue),
+      ...warning.map(_makeOperationOutcomeIssue),
+      ...information.map(_makeOperationOutcomeIssue),
+    ];
     final outcome = OperationOutcome(issue: issues);
     return outcome;
   }
 
+  /// Returns a pretty printed JSON string.
   String prettyPrint() {
     return jsonPrettyPrint(toOperationOutcome().toJson());
   }
 
+  /// Returns a pretty printed JSON string.
   ValidationResults copyWith({
     List<ValidationDiagnostics>? results,
     List<ValidationDiagnostics>? missingResults,
@@ -160,7 +166,9 @@ class ValidationResults {
   }
 }
 
+/// [ValidationDiagnostics]
 class ValidationDiagnostics {
+  /// [ValidationDiagnostics] constructor
   ValidationDiagnostics(
     this.path,
     this.diagnostics,
@@ -169,6 +177,7 @@ class ValidationDiagnostics {
     this.column,
   });
 
+  /// Create a [ValidationDiagnostics] object
   factory ValidationDiagnostics.create(
     Node? node,
     String newItem,
@@ -182,41 +191,52 @@ class ValidationDiagnostics {
           line = node.loc?.start.line;
           column = node.loc?.start.column;
         }
-        break;
       case ArrayNode _:
         {
           line = node.loc?.start.line;
           column = node.loc?.start.column;
         }
-        break;
       case PropertyNode _:
         {
           line = node.key?.loc?.start.line ?? node.loc?.start.line;
           column = node.key?.loc?.start.column ?? node.loc?.start.column;
         }
-        break;
       case LiteralNode _:
         {
           line = node.loc?.start.line;
           column = node.loc?.start.column;
         }
-        break;
       case ValueNode _:
         {
           line = node.loc?.start.line;
           column = node.loc?.start.column;
         }
-        break;
     }
-    return ValidationDiagnostics(node?.path ?? '', newItem, severity,
-        line: line, column: column);
+    return ValidationDiagnostics(
+      node?.path ?? '',
+      newItem,
+      severity,
+      line: line,
+      column: column,
+    );
   }
+
+  /// [path] of the diagnostics
   final String path;
+
+  /// [diagnostics] of the diagnostics
   final String diagnostics;
+
+  /// [severity] of the diagnostics
   final Severity severity;
+
+  /// [line] of the diagnostics
   final int? line;
+
+  /// [column] of the diagnostics
   final int? column;
 
+  /// Convert the diagnostics to a JSON object
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'path': path,
@@ -232,6 +252,7 @@ class ValidationDiagnostics {
     return toJson().toString();
   }
 
+  /// Returns a pretty printed JSON string.
   ValidationDiagnostics copyWith({
     String? path,
     String? diagnostics,
@@ -249,11 +270,18 @@ class ValidationDiagnostics {
   }
 }
 
+/// [Severity]
 enum Severity {
+  /// Error
   error,
+
+  /// Warning
   warning,
+
+  /// Information
   information;
 
+  /// Converts a [Severity] to a string
   @override
   String toString() {
     switch (this) {
@@ -266,6 +294,7 @@ enum Severity {
     }
   }
 
+  /// Converts a string to a [Severity]
   static Severity fromString(String severity) {
     switch (severity) {
       case 'error':
@@ -279,6 +308,7 @@ enum Severity {
     }
   }
 
+  /// Converts a JSON object to a [Severity]
   static Severity fromJson(dynamic json) {
     if (json is String) {
       return fromString(json);
@@ -287,5 +317,6 @@ enum Severity {
     }
   }
 
+  /// Converts a [Severity] to a JSON object
   String toJson() => toString();
 }

@@ -1,14 +1,17 @@
 import 'package:fhir_r4/fhir_r4.dart';
-import 'package:http/http.dart';
 import 'package:fhir_validation/fhir_validation.dart';
+import 'package:http/http.dart';
 
+
+/// Validate the bindings of a node against the value sets defined in the
+/// element definitions.
 Future<ValidationResults> validateBindings({
   required Node node,
   required List<ElementDefinition> elements,
   required ValidationResults results,
   Client? client,
 }) async {
-  for (var element in elements) {
+  for (final element in elements) {
     if (element.binding != null && element.binding!.valueSet != null) {
       final valueSetUrl = element.binding!.valueSet.toString();
       final validCodes = await getValueSetCodes(valueSetUrl, client);
@@ -38,12 +41,13 @@ Future<ValidationResults> _validateNodeAgainstValueSet(
   BindingStrength? strength,
   String valueSetUrl,
 ) async {
+  var newResults = results.copyWith();
   if (node is ObjectNode) {
-    for (var child in node.children) {
-      results = await _validateNodeAgainstValueSet(
+    for (final child in node.children) {
+      newResults = await _validateNodeAgainstValueSet(
         child,
         validCodes,
-        results,
+        newResults,
         strength,
         valueSetUrl,
       );
@@ -60,7 +64,7 @@ Future<ValidationResults> _validateNodeAgainstValueSet(
       );
     }
   }
-  return results;
+  return newResults;
 }
 
 Node? _findNodeByPath(Node rootNode, String path) {

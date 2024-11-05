@@ -1,19 +1,25 @@
 import 'package:fhir_r4/fhir_r4.dart';
+import 'package:fhir_validation/fhir_validation.dart';
 import 'package:http/http.dart';
 
-import 'package:fhir_validation/fhir_validation.dart';
-
+/// Validates the extensions of a [Node] against the corresponding
+/// [ElementDefinition].
 Future<ValidationResults> validateExtensions(
   Node node,
   List<ElementDefinition> elements,
   ValidationResults results,
   Client? client,
 ) async {
-  for (var element in elements) {
+  var newResults = results.copyWith();
+  for (final element in elements) {
     if (element.type != null &&
-        element.type!.any((ElementDefinitionType t) => t.code == 'Extension')) {
+        element.type!.any(
+          (ElementDefinitionType t) => t.code.toString() == 'Extension',
+        )) {
       final extensionUrl = element.type
-          ?.firstWhere((ElementDefinitionType t) => t.code == 'Extension')
+          ?.firstWhere(
+            (ElementDefinitionType t) => t.code.toString() == 'Extension',
+          )
           .profile
           ?.first;
       final extensionDefinition =
@@ -26,7 +32,7 @@ Future<ValidationResults> validateExtensions(
         final extensionElements = extractElements(structureDefinition);
         final extensionNode = node.getPropertyNode('_${element.path.value!}');
         if (extensionNode != null) {
-          results = await validateStructure(
+          newResults = await validateStructure(
             node: extensionNode,
             elements: extensionElements,
             type: 'Extension',
@@ -36,5 +42,5 @@ Future<ValidationResults> validateExtensions(
       }
     }
   }
-  return results;
+  return newResults;
 }

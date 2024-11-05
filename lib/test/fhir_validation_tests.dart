@@ -50,7 +50,7 @@ Future<void> fhirValidationTest() async {
       final resource = await test2.resource();
       final supportResources = await test2.supportResources();
       for (final resource in supportResources) {
-        saveResource(resource);
+        await saveResource(resource);
       }
       final result =
           await validator.validateFhirResource(resourceToValidate: resource);

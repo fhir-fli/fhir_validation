@@ -4,7 +4,9 @@ import 'package:fhir_r4/fhir_r4.dart';
 import 'package:fhir_validation/fhir_validation.dart';
 import 'package:http/http.dart';
 
+/// [FhirValidator]
 class FhirValidator {
+  /// validate a FHIR resource from a Dart FHIR class
   Future<ValidationResults> validateFhirResource({
     required Resource resourceToValidate,
     StructureDefinition? structureDefinition,
@@ -17,6 +19,7 @@ class FhirValidator {
     );
   }
 
+  /// validate a FHIR resource from a JSON string
   Future<ValidationResults> validateFhirString({
     required String resourceToValidate,
     required Client? client,
@@ -30,6 +33,7 @@ class FhirValidator {
     );
   }
 
+  /// validate a FHIR resource from a JSON map
   Future<ValidationResults> validateFhirMap({
     required Map<String, dynamic> resourceToValidate,
     required Client? client,
@@ -63,7 +67,7 @@ class FhirValidator {
     }
 
     // Retrieve profiles for the resource
-    var profiles = <Map<String, dynamic>>[];
+    final profiles = <Map<String, dynamic>>[];
     final results = await _getProfiles(node, client, profiles);
 
     if (profiles.isNotEmpty) {
@@ -91,7 +95,8 @@ class FhirValidator {
       return results
         ..addResult(
           null,
-          'No StructureDefinition was found for this Resource, which is a resourceType of: $type',
+          'No StructureDefinition was found for this Resource, '
+          'which is a resourceType of: $type',
           Severity.error,
         );
     } else if (definitionMap['resourceType'] == 'OperationOutcome') {
@@ -112,12 +117,14 @@ class FhirValidator {
       return results
         ..addResult(
           null,
-          'The StructureDefinition for this Resource is not a StructureDefinition, which is a resourceType of: $type',
+          'The StructureDefinition for this Resource is not a '
+          'StructureDefinition, which is a resourceType of: $type',
           Severity.error,
         );
     }
   }
 
+  /// the function to actually evaluate the resource
   Future<ValidationResults> evaluate(
     Map<String, dynamic> mapToValidate,
     StructureDefinition structureDefinition,
@@ -178,11 +185,12 @@ class FhirValidator {
   ) async {
     final results = ValidationResults();
     if (node is ObjectNode) {
-      // Extract profiles from the resource if any are specified in the meta section
+      // Extract profiles from the resource if any are specified in the 
+      //meta section
       final profileNodes = node.extractProfileNodes();
 
       // Retrieve profile definitions for each profile URL
-      for (var profile in profileNodes) {
+      for (final profile in profileNodes) {
         try {
           final profileDef = await getResource(profile.value as String, client);
           if (profileDef != null) {

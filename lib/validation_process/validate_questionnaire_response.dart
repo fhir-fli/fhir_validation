@@ -1,9 +1,10 @@
-import 'package:fhir_r4/fhir_r4.dart';
-import 'package:http/http.dart';
 import 'package:collection/collection.dart';
-
+import 'package:fhir_r4/fhir_r4.dart';
 import 'package:fhir_validation/fhir_validation.dart';
+import 'package:http/http.dart';
 
+/// Validates a [QuestionnaireResponse] against the corresponding
+/// [Questionnaire].
 Future<ValidationResults> validateQuestionnaireResponse({
   required QuestionnaireResponse questionnaireResponse,
   required Client? client,
@@ -50,7 +51,8 @@ Future<ValidationResults> _validateResponseItems({
 }) async {
   final results = ValidationResults();
 
-  // Compare each item in the QuestionnaireResponse with the corresponding item in the Questionnaire
+  // Compare each item in the QuestionnaireResponse with the corresponding
+  //item in the Questionnaire
   for (final responseItem in response.item ?? <QuestionnaireResponseItem>[]) {
     final questionnaireItem = questionnaire.item?.firstWhereOrNull(
       (QuestionnaireItem item) => item.linkId == responseItem.linkId,
@@ -59,7 +61,8 @@ Future<ValidationResults> _validateResponseItems({
     if (questionnaireItem == null) {
       results.addResult(
         null,
-        'Response item with linkId ${responseItem.linkId} not found in Questionnaire',
+        'Response item with linkId ${responseItem.linkId} '
+        'not found in Questionnaire',
         Severity.error,
       );
       continue;
@@ -86,7 +89,7 @@ ValidationResults _validateResponseItem({
   // Validate type and constraints
   // Example: Check if the response type matches the questionnaire item type
   // Add additional checks as necessary
-  if (questionnaireItem.required_?.value == true &&
+  if ((questionnaireItem.required_?.value ?? false) &&
       (responseItem.answer == null || responseItem.answer!.isEmpty)) {
     results.addResult(
       null,
@@ -112,7 +115,8 @@ ValidationResults _validateResponseItem({
     } else {
       results.addResult(
         null,
-        'Nested response item with linkId ${nestedResponseItem.linkId} not found in Questionnaire',
+        'Nested response item with linkId ${nestedResponseItem.linkId} '
+        'not found in Questionnaire',
         Severity.error,
       );
     }
