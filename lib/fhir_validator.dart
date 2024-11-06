@@ -84,6 +84,7 @@ class FhirValidator {
           ),
         );
       }
+      print(results.toJson());
       return results;
     }
 
@@ -99,7 +100,7 @@ class FhirValidator {
           'which is a resourceType of: $type',
           Severity.error,
         );
-    } else if (definitionMap['resourceType'] == 'OperationOutcome') {
+    } else if (definitionMap['resourceType'] == 'StructureDefinition') {
       // Parse the structure definition from JSON
       structureDefinition = StructureDefinition.fromJson(definitionMap);
       return results
@@ -145,6 +146,9 @@ class FhirValidator {
       client: client,
     );
 
+    print('After validate structure');
+    print(results.toJson());
+
     results = await validateCardinality(
       structureDefinition.getUrl(),
       node as ObjectNode,
@@ -155,6 +159,9 @@ class FhirValidator {
       client,
     );
 
+    print('After validate cardinality');
+    print(results.toJson());
+
     results = await validateBindings(
       node: node,
       elements: elements,
@@ -162,8 +169,15 @@ class FhirValidator {
       client: client,
     );
 
+    print('After validate bindings');
+    print(results.toJson());
+
     // Validate Extensions
     results = await validateExtensions(node, elements, results, client);
+
+
+    print('After validate extensions');
+    print(results.toJson());
 
     if (type == 'QuestionnaireResponse' &&
         mapToValidate['resourceType'] == 'QuestionnaireResponse') {
@@ -175,6 +189,8 @@ class FhirValidator {
       );
     }
 
+    print('After validate questionnaire response');
+    print(results.toJson());
     return results;
   }
 
@@ -186,7 +202,7 @@ class FhirValidator {
     final results = ValidationResults();
     if (node is ObjectNode) {
       // Extract profiles from the resource if any are specified in the 
-      //meta section
+      // meta section
       final profileNodes = node.extractProfileNodes();
 
       // Retrieve profile definitions for each profile URL

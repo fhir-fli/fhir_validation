@@ -11,6 +11,7 @@ Future<ValidationResults> validateBindings({
   required ValidationResults results,
   Client? client,
 }) async {
+  var newResults = results.copyWith();
   for (final element in elements) {
     if (element.binding != null && element.binding!.valueSet != null) {
       final valueSetUrl = element.binding!.valueSet.toString();
@@ -20,10 +21,10 @@ Future<ValidationResults> validateBindings({
       if (elementPath != null) {
         final targetNode = _findNodeByPath(node, elementPath);
         if (targetNode != null) {
-          results = await _validateNodeAgainstValueSet(
+          newResults = await _validateNodeAgainstValueSet(
             targetNode,
             validCodes,
-            results,
+            newResults,
             element.binding!.strength,
             valueSetUrl,
           );
@@ -31,7 +32,7 @@ Future<ValidationResults> validateBindings({
       }
     }
   }
-  return results;
+  return newResults;
 }
 
 Future<ValidationResults> _validateNodeAgainstValueSet(
@@ -55,7 +56,7 @@ Future<ValidationResults> _validateNodeAgainstValueSet(
   } else if (node is PropertyNode && node.value is LiteralNode) {
     final dynamic code = (node.value! as LiteralNode).value;
     if (code != null && !validCodes.contains(code)) {
-      results.addResult(
+      newResults.addResult(
         node,
         'Code "$code" is not valid according to ValueSet $valueSetUrl',
         strength == BindingStrength.required_

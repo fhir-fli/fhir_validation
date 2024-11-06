@@ -77,9 +77,10 @@ Future<ValidationResults> _validateElementCardinality({
   required ValidationResults results,
   required Client? client,
 }) async {
+  var newResults = results.copyWith();
   // Check for missing required elements
   if (element.min != null && element.min! > 0 && foundNode == null) {
-    results.addMissingResult(
+    newResults.addMissingResult(
       path,
       withUrlIfExists(
         '$path: minimum required = ${element.min}, but only found 0',
@@ -94,7 +95,7 @@ Future<ValidationResults> _validateElementCardinality({
       if (max != null &&
           foundNode is ArrayNode &&
           foundNode.children.length > max) {
-        results.addResult(
+        newResults.addResult(
           node,
           withUrlIfExists(
             'Too many elements for: $path. Maximum allowed is $max.',
@@ -108,7 +109,7 @@ Future<ValidationResults> _validateElementCardinality({
     // Check if the required element is populated
     if (element.min != null && element.min! > 0) {
       if (!_isNodePopulated(foundNode)) {
-        results.addResult(
+        newResults.addResult(
           node,
           withUrlIfExists('Required element is not populated: $path', url),
           Severity.error,
@@ -116,17 +117,17 @@ Future<ValidationResults> _validateElementCardinality({
       }
     } else {
       // Recursively check nested elements if not a primitive type
-      results = await _validateNestedElements(
+      newResults = await _validateNestedElements(
         element: element,
         foundNode: foundNode,
         originalPath: originalPath,
         replacePath: replacePath,
-        results: results,
+        results: newResults,
         client: client,
       );
     }
   }
-  return results;
+  return newResults;
 }
 
 bool _isNodePopulated(Node foundNode) {
@@ -143,6 +144,7 @@ Future<ValidationResults> _validateNestedElements({
   required ValidationResults results,
   required Client? client,
 }) async {
+  var newResults = results.copyWith();
   if (element.type != null && element.type!.isNotEmpty) {
     final typeCode = findCode(element, foundNode.path);
     if (typeCode != null && !isPrimitiveType(typeCode)) {
@@ -153,20 +155,20 @@ Future<ValidationResults> _validateNestedElements({
             StructureDefinition.fromJson(structureDefinitionMap);
         final newElements = extractElements(structureDefinition);
         if (foundNode is ObjectNode) {
-          results = await validateCardinality(
+          newResults = await validateCardinality(
             structureDefinition.getUrl(),
             foundNode,
             originalPath,
             replacePath,
             newElements,
-            results,
+            newResults,
             client,
           );
         }
       }
     }
   }
-  return results;
+  return newResults;
 }
 
 Node? _findNodeRecursively(

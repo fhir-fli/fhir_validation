@@ -13,6 +13,8 @@ dependencies:
     path: ../fhir_definitions
   fhir_r4:
     path: ../fhir_r4
+  flutter:
+    sdk: flutter
   flutter_test:
     sdk: flutter
   grapheme_splitter: ^1.0.1
@@ -26,7 +28,3 @@ dev_dependencies:
   # test: ^1.25.8
   very_good_analysis: ^6.0.0
 
-flutter:
-  assets:
-    - lib/test/test1/
-    - lib/test/test2/

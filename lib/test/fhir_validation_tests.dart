@@ -1,33 +1,34 @@
 import 'package:fhir_definitions/fhir_definitions.dart';
-import 'package:fhir_r4/fhir_r4.dart';
 import 'package:fhir_validation/fhir_validation.dart';
-import 'package:fhir_validation/test/test2/test.dart' as test2;
+import 'package:fhir_validation/test/test1/test.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Testing FHIR Validation
 Future<void> fhirValidationTest() async {
   // Singleton cache instance
   final resourceCache = ResourceCache();
-  Future<void> saveResource(Resource resource) async {
-    switch (resource) {
-      case StructureDefinition _:
-        resourceCache.set(resource.url.toString(), resource.toJson());
-      case ValueSet _:
-        if (resource.url != null) {
-          resourceCache.set(resource.url!.toString(), resource.toJson());
+  Future<void> saveResource(Map<String, dynamic> resource) async {
+    final resourceType = resource['resourceType'];
+    switch (resourceType) {
+      case 'StructureDefinition':
+        resourceCache.set(resource['url'] as String, resource);
+      case 'ValueSet':
+        if (resource['url'] != null) {
+          resourceCache.set(resource['url'] as String, resource);
         }
-      case CodeSystem _:
-        if (resource.url != null) {
-          resourceCache.set(resource.url!.toString(), resource.toJson());
+      case 'CodeSystem':
+        if (resource['url'] != null) {
+          resourceCache.set(resource['url'] as String, resource);
         }
-      case NamingSystem _:
-        for (final uniqueId in resource.uniqueId) {
-          final value = uniqueId.value.value ?? '';
-          final type = uniqueId.type.toString().toLowerCase();
+      case 'NamingSystem':
+        for (final uniqueId
+            in resource['uniqueId'] as List<Map<String, dynamic>>) {
+          final value = uniqueId['value'] as String? ?? '';
+          final type = (uniqueId['type'] as String).toLowerCase();
           if (type == 'oid' && !resourceCache.containsKey(value)) {
-            resourceCache.set(value, resource.toJson());
+            resourceCache.set(value, resource);
           } else if (type == 'uri' && !resourceCache.containsKey(value)) {
-            resourceCache.set(value, resource.toJson());
+            resourceCache.set(value, resource);
           }
         }
     }
@@ -35,28 +36,32 @@ Future<void> fhirValidationTest() async {
 
   final validator = FhirValidator();
   group('FHIR Mapping', () {
-    // test('Test1', () async {
-    //   final Resource resource =  test1.resource();
-    //   final List<Resource> supportResources =  test1.supportResources();
-    //   for (final Resource resource in supportResources) {
-    //     saveResource(resource);
-    //   }
-    //   final ValidationResults result =
-    //        validator.validateFhirResource(resourceToValidate: resource);
-    //   expect(result.toOperationOutcome().toJson(),
-    //       ( test1.response()).toJson());
-    // });
-    test('Test2', () async {
-      final resource = await test2.resource();
-      final supportResources = await test2.supportResources();
+    test('Test1', () async {
+      final supportResources = [
+        supportResource1,
+        supportResource2,
+        supportResource3,
+        supportResource4,
+      ];
       for (final resource in supportResources) {
         await saveResource(resource);
       }
-      final result =
-          await validator.validateFhirResource(resourceToValidate: resource);
+      final result1 = await validator.validateFhirMap(
+        resourceToValidate: resource1,
+        client: null,
+      );
       expect(
-        result.toOperationOutcome().toJson(),
-        (await test2.response()).toJson(),
+        result1.toOperationOutcome().toJson(),
+        response1,
+      );
+
+      final result1a = await validator.validateFhirMap(
+        resourceToValidate: resource1a,
+        client: null,
+      );
+      expect(
+        result1a.toOperationOutcome().toJson(),
+        response1a,
       );
     });
   });

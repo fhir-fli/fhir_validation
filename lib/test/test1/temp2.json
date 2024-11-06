@@ -1,0 +1,62 @@
+{
+    "resourceType": "OperationOutcome",
+    "issue": [
+        {
+            "extension": [
+                {
+                    "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line",
+                    "valueInteger": 1
+                },
+                {
+                    "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col",
+                    "valueInteger": 1
+                }
+            ],
+            "severity": "information",
+            "code": "processing",
+            "diagnostics": "Invariant violation: A resource should have narrative for robust management (from http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient|6.1.0)",
+            "location": [
+                "Patient",
+                "Line[1] Col[1]"
+            ]
+        },
+        {
+            "extension": [
+                {
+                    "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line",
+                    "valueInteger": 1
+                },
+                {
+                    "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col",
+                    "valueInteger": 1
+                }
+            ],
+            "severity": "error",
+            "code": "processing",
+            "diagnostics": "Patient.identifier: minimum required = 1, but only found 0 (from http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient|6.1.0)",
+            "location": [
+                "Patient.identifier",
+                "Line[1] Col[1]"
+            ]
+        },
+        {
+            "extension": [
+                {
+                    "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line",
+                    "valueInteger": 1
+                },
+                {
+                    "url": "http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col",
+                    "valueInteger": 1
+                }
+            ],
+            "severity": "error",
+            "code": "processing",
+            "diagnostics": "Patient.name: minimum required = 1, but only found 0 (from http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient|6.1.0)",
+            "location": [
+                "Patient.name",
+                "Line[1] Col[1]"
+            ]
+        }
+    ]
+}

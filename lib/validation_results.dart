@@ -11,7 +11,12 @@ class ValidationResults {
 
   /// Add a result to the list of results
   void addResult(Node? node, String newItem, Severity severity) {
-    results.add(ValidationDiagnostics.create(node, newItem, severity));
+    final existing = results.any(
+      (element) => element.path == node?.path && element.diagnostics == newItem,
+    );
+    if (!existing) {
+      results.add(ValidationDiagnostics.create(node, newItem, severity));
+    }
   }
 
   /// Add a missing result to the list of missing results
@@ -20,47 +25,62 @@ class ValidationResults {
       (ValidationDiagnostics element) => path.startsWith(element.path),
     );
     if (index == -1) {
-      missingResults.add(ValidationDiagnostics(path, newItem, severity));
+      missingResults.add(
+        ValidationDiagnostics(path, newItem, severity, line: 1, column: 1),
+      );
     }
   }
 
   /// Combine the results of two ValidationResults objects
   void combineResults(ValidationResults other) {
-    results.addAll(other.results);
-    missingResults.addAll(other.missingResults);
+    for (final result in other.results) {
+      final exists = results.any(
+        (existing) =>
+            existing.path == result.path &&
+            existing.diagnostics == result.diagnostics,
+      );
+      if (!exists) {
+        results.add(result);
+      }
+    }
+    for (final missingResult in other.missingResults) {
+      final exists = missingResults.any(
+        (existing) =>
+            existing.path == missingResult.path &&
+            existing.diagnostics == missingResult.diagnostics,
+      );
+      if (!exists) {
+        missingResults.add(missingResult);
+      }
+    }
   }
 
   void _joinResults() {
-    results.addAll(_cleanMissingResults());
+    final uniqueMissingResults = _cleanMissingResults();
+    for (final result in uniqueMissingResults) {
+      final exists = results.any(
+        (existing) =>
+            existing.path == result.path &&
+            existing.diagnostics == result.diagnostics,
+      );
+      if (!exists) {
+        results.add(result);
+      }
+    }
   }
 
   /// Convert the results to a JSON object
   Map<String, dynamic> toJson() {
     _joinResults();
-    final error = results
-        .where(
-          (ValidationDiagnostics element) => element.severity == Severity.error,
-        )
-        .map((ValidationDiagnostics e) => e.toJson())
-        .toList();
-    final warning = results
-        .where(
-          (ValidationDiagnostics element) =>
-              element.severity == Severity.warning,
-        )
-        .map((ValidationDiagnostics e) => e.toJson())
-        .toList();
-    final information = results
-        .where(
-          (ValidationDiagnostics element) =>
-              element.severity == Severity.information,
-        )
-        .map((ValidationDiagnostics e) => e.toJson())
-        .toList();
-    return <String, dynamic>{
-      'error': error,
-      'warning': warning,
-      'information': information,
+    final uniqueResults = results.toSet().toList();
+    return {
+      'error':
+          uniqueResults.where((e) => e.severity == Severity.error).toList(),
+      'warning':
+          uniqueResults.where((e) => e.severity == Severity.warning).toList(),
+      'information': uniqueResults
+          .where((e) => e.severity == Severity.information)
+          .toList(),
     };
   }
 
@@ -113,11 +133,11 @@ class ValidationResults {
         location: <FhirString>[
           e.path.toFhirString,
           if (e.line != null && e.column != null)
-            'Line[${e.line}] Column[${e.column}]'.toFhirString,
+            'Line[${e.line}] Col[${e.column}]'.toFhirString,
           if (e.line != null && e.column == null)
             'Line[${e.line}]'.toFhirString,
           if (e.line == null && e.column != null)
-            'Column[${e.column}]'.toFhirString,
+            'Col[${e.column}]'.toFhirString,
         ],
       );
 
@@ -160,9 +180,12 @@ class ValidationResults {
     List<ValidationDiagnostics>? results,
     List<ValidationDiagnostics>? missingResults,
   }) {
+    final newResults = List.of(results ?? this.results).toSet().toList();
+    final newMissingResults =
+        List.of(missingResults ?? this.missingResults).toSet().toList();
     return ValidationResults()
-      ..results.addAll(results ?? this.results)
-      ..missingResults.addAll(missingResults ?? this.missingResults);
+      ..results.addAll(newResults)
+      ..missingResults.addAll(newMissingResults);
   }
 }
 
@@ -268,6 +291,20 @@ class ValidationDiagnostics {
       column: column ?? this.column,
     );
   }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ValidationDiagnostics &&
+          runtimeType == other.runtimeType &&
+          path == other.path &&
+          diagnostics == other.diagnostics &&
+          severity == other.severity;
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => path.hashCode ^ diagnostics.hashCode ^ severity.hashCode;
 }
 
 /// [Severity]
