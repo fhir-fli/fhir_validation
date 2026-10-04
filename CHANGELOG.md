@@ -34,4 +34,5 @@
 - Known limit, as before: `validateBindings` reaches an element path only
   through objects and indexed segments; a binding under a repeating element
   (`Observation.category.coding.code`) is not walked.
-- No dependency on any fhir_r* package.
+- No dependency on any fhir_r* package. `ElementNode` is fhir_path
+  0.15.0's, re-exported here.

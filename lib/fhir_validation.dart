@@ -12,9 +12,15 @@
 library;
 
 export 'package:fhir_path/fhir_path.dart'
-    show CanonicalResourceCache, OnlineResourceCache, ResourceCache;
+    show
+        CanonicalResourceCache,
+        ElementBinding,
+        ElementConstraint,
+        ElementNode,
+        ElementType,
+        OnlineResourceCache,
+        ResourceCache;
 
-export 'src/element_node.dart';
 export 'src/utils/definitions.dart';
 export 'src/utils/for_primitives.dart';
 export 'src/utils/json_to_ast.dart';
