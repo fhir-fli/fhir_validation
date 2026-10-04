@@ -1,1 +1,11 @@
-include: package:very_good_analysis/analysis_options.6.0.0.yaml
+include: package:very_good_analysis/analysis_options.yaml
+
+# The family's lint policy: very_good_analysis with five exceptions, as in
+# fhir_r4's root analysis_options.yaml.
+linter:
+  rules:
+    avoid_positional_boolean_parameters: false
+    always_put_required_named_parameters_first: false
+    document_ignores: false
+    comment_references: false
+    public_member_api_docs: false

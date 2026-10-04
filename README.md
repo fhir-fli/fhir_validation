@@ -1,62 +1,46 @@
-# Fhir Validation
+# fhir_validation
 
-[![style: very good analysis][very_good_analysis_badge]][very_good_analysis_link]
-[![Powered by Mason](https://img.shields.io/endpoint?url=https%3A%2F%2Ftinyurl.com%2Fmason-badge)](https://github.com/felangel/mason)
-[![License: MIT][license_badge]][license_link]
+[![pub package](https://img.shields.io/pub/v/fhir_validation.svg)](https://pub.dev/packages/fhir_validation)
 
-A Very Good Project created by Very Good CLI.
+Validation of FHIR resources against their StructureDefinitions, for every
+FHIR version: structure, cardinality, bindings, extensions and invariants
+(FHIRPath constraints), plus a QuestionnaireResponse against its
+Questionnaire.
 
-## Installation 💻
+FHIR® is the registered trademark of HL7 and is used with the permission of
+HL7. Use of the FHIR trademark does not constitute endorsement of this product
+by HL7.
 
-**❗ In order to start using Fhir Validation you must have the [Dart SDK][dart_install_link] installed on your machine.**
+## How it is version-free
 
-Install via `dart pub add`:
+The resource under validation is JSON. Definitions (StructureDefinition,
+ValueSet, CodeSystem, Questionnaire) come from a `fhir_path` `ResourceCache`
+and are read by element name through the
+[`fhir_node`](https://pub.dev/packages/fhir_node) contract. A version's
+binding (`fhir_r4_validation`, `fhir_r5_validation`, `fhir_r6_validation`)
+supplies a `ValidationModel`: its primitive-value rules, how a JSON value
+becomes a typed FHIRPath context, and its fhir_path binding.
 
-```sh
-dart pub add fhir_validation
+## Usage with a binding
+
+```dart
+import 'package:fhir_r4_validation/fhir_r4_validation.dart';
+
+final cache = CanonicalResourceCache()..see(patientStructureDefinition);
+final results = await const FhirValidationEngine().validateFhirMap(
+  structureToValidate: {'resourceType': 'Patient', 'id': 'p1'},
+  resourceCache: cache,
+);
+if (results.hasErrors) print(results.toOperationOutcome().toJson());
 ```
 
----
+Supply a cache. The default `CanonicalResourceCache` is empty, so without
+one the engine answers "No StructureDefinition found for resourceType".
 
-## Continuous Integration 🤖
+## Usage without a binding
 
-Fhir Validation comes with a built-in [GitHub Actions workflow][github_actions_link] powered by [Very Good Workflows][very_good_workflows_link] but you can also add your preferred CI/CD solution.
+Implement `ValidationModel` for whatever implements `FhirNode` and pass it:
 
-Out of the box, on each pull request and push, the CI `formats`, `lints`, and `tests` the code. This ensures the code remains consistent and behaves correctly as you add functionality or make changes. The project uses [Very Good Analysis][very_good_analysis_link] for a strict set of analysis options used by our team. Code coverage is enforced using the [Very Good Workflows][very_good_coverage_link].
-
----
-
-## Running Tests 🧪
-
-To run all unit tests:
-
-```sh
-dart pub global activate coverage 1.2.0
-dart test --coverage=coverage
-dart pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info
+```dart
+final engine = FhirValidationEngine(myModel);
 ```
-
-To view the generated coverage report you can use [lcov](https://github.com/linux-test-project/lcov).
-
-```sh
-# Generate Coverage Report
-genhtml coverage/lcov.info -o coverage/
-
-# Open Coverage Report
-open coverage/index.html
-```
-
-[dart_install_link]: https://dart.dev/get-dart
-[github_actions_link]: https://docs.github.com/en/actions/learn-github-actions
-[license_badge]: https://img.shields.io/badge/license-MIT-blue.svg
-[license_link]: https://opensource.org/licenses/MIT
-[logo_black]: https://raw.githubusercontent.com/VGVentures/very_good_brand/main/styles/README/vgv_logo_black.png#gh-light-mode-only
-[logo_white]: https://raw.githubusercontent.com/VGVentures/very_good_brand/main/styles/README/vgv_logo_white.png#gh-dark-mode-only
-[mason_link]: https://github.com/felangel/mason
-[very_good_analysis_badge]: https://img.shields.io/badge/style-very_good_analysis-B22C89.svg
-[very_good_analysis_link]: https://pub.dev/packages/very_good_analysis
-[very_good_coverage_link]: https://github.com/marketplace/actions/very-good-coverage
-[very_good_ventures_link]: https://verygood.ventures
-[very_good_ventures_link_light]: https://verygood.ventures#gh-light-mode-only
-[very_good_ventures_link_dark]: https://verygood.ventures#gh-dark-mode-only
-[very_good_workflows_link]: https://github.com/VeryGoodOpenSource/very_good_workflows
