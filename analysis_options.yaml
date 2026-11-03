@@ -9,3 +9,9 @@ linter:
     document_ignores: false
     comment_references: false
     public_member_api_docs: false
+
+analyzer:
+  exclude:
+    # A separate package (its own pubspec, depends on fhir_r4_path); analyze
+    # it from its own directory after `dart pub get`.
+    - tool/fhirpath_constraint_bench/**
