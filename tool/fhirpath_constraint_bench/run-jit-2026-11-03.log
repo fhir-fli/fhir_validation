@@ -1,0 +1,10 @@
+engine create 42357 us
+obs-6	8241	15	26	[true]
+obs-7	3128	12	19	[true]
+dom-2	238	10	33	[true]
+dom-3	2455	19	40	[true]
+dom-4	383	24	56	[true]
+dom-5	478	8	13	[true]
+dom-6	807	10	20	[true]
+ele-1-root	391	6	9	[true]
+descendants	225	43	92	[87]
