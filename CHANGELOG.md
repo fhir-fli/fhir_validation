@@ -1,6 +1,6 @@
 # fhir_validation
 
-## Unreleased
+## [0.13.1]
 
 - A complex element's type is found from its type code. The nested lookups
   (validate_structure, validate_cardinality) asked the cache for the bare
