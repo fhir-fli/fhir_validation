@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:fhir_node/fhir_node.dart';
+import 'package:fhir_path/fhir_path.dart' show typeCodeCanonical;
 import 'package:fhir_validation/fhir_validation.dart';
 
 /// Validates the structure of a FHIR resource against a given
@@ -394,7 +395,7 @@ Future<ValidationResults> _codeIsComplexType(
   ValidationResults results,
 ) async {
   final structureDefinition = await run.resourceCache.getStructureDefinition(
-    code,
+    typeCodeCanonical(code),
   );
 
   // Handle cases where the StructureDefinition is missing.

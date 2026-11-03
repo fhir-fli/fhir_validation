@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:fhir_path/fhir_path.dart' show typeCodeCanonical;
 import 'package:fhir_validation/fhir_validation.dart';
 
 /// Validates the cardinality of a [Node] against its corresponding
@@ -179,7 +180,7 @@ Future<ValidationResults> _validateNestedElements({
     final typeCode = findCode(element, foundNode.path);
     if (typeCode != null && !isPrimitiveType(typeCode)) {
       final structureDefinition = await resourceCache.getStructureDefinition(
-        typeCode,
+        typeCodeCanonical(typeCode),
       );
       if (structureDefinition != null) {
         final newElements = extractElements(structureDefinition);

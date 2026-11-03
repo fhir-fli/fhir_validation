@@ -1,3 +1,4 @@
+import 'package:fhir_node/fhir_node.dart';
 import 'package:fhir_validation/fhir_validation.dart';
 import 'package:test/test.dart';
 
@@ -122,6 +123,37 @@ void main() {
       );
     });
 
+    // A complex element's type is looked up by its type code, which
+    // ElementDefinition.type.code (profiles-types.ndjson, 4.3.0) makes
+    // relative to http://hl7.org/fhir/StructureDefinition. The lookups for
+    // a nested element asked for the bare code, `HumanName`, which no cache
+    // keyed by canonical URL holds.
+    test('a data type is found from its type code', () async {
+      final cache =
+          CanonicalResourceCache()
+            ..see(_patientWithName)
+            ..see(_humanName);
+
+      final results = await const FhirValidationEngine(
+        testModel,
+      ).validateFhirMap(
+        structureToValidate: {
+          'resourceType': 'Patient',
+          'id': 'p1',
+          'name': [
+            {'family': 'Doe'},
+          ],
+        },
+        resourceCache: cache,
+      );
+
+      expect(
+        results.results.map((r) => r.diagnostics),
+        isNot(contains(contains('No StructureDefinition'))),
+      );
+      expect(results.hasErrors, isFalse);
+    });
+
     test('a given StructureDefinition is used without a lookup', () async {
       final results = await const FhirValidationEngine(
         testModel,
@@ -150,3 +182,68 @@ void main() {
     });
   });
 }
+
+/// Patient with an id and a name of type HumanName.
+final JsonNode _patientWithName = resource({
+  'resourceType': 'StructureDefinition',
+  'id': 'Patient',
+  'url': 'http://hl7.org/fhir/StructureDefinition/Patient',
+  'name': 'Patient',
+  'status': 'active',
+  'kind': 'resource',
+  'abstract': false,
+  'type': 'Patient',
+  'baseDefinition': 'http://hl7.org/fhir/StructureDefinition/DomainResource',
+  'derivation': 'specialization',
+  'snapshot': {
+    'element': [
+      {'id': 'Patient', 'path': 'Patient', 'min': 0, 'max': '*'},
+      {
+        'id': 'Patient.id',
+        'path': 'Patient.id',
+        'min': 0,
+        'max': '1',
+        'type': [
+          {'code': 'http://hl7.org/fhirpath/System.String'},
+        ],
+      },
+      {
+        'id': 'Patient.name',
+        'path': 'Patient.name',
+        'min': 0,
+        'max': '*',
+        'type': [
+          {'code': 'HumanName'},
+        ],
+      },
+    ],
+  },
+});
+
+/// HumanName with a family of the System String type, at its canonical.
+final JsonNode _humanName = resource({
+  'resourceType': 'StructureDefinition',
+  'id': 'HumanName',
+  'url': 'http://hl7.org/fhir/StructureDefinition/HumanName',
+  'name': 'HumanName',
+  'status': 'active',
+  'kind': 'complex-type',
+  'abstract': false,
+  'type': 'HumanName',
+  'baseDefinition': 'http://hl7.org/fhir/StructureDefinition/Element',
+  'derivation': 'specialization',
+  'snapshot': {
+    'element': [
+      {'id': 'HumanName', 'path': 'HumanName', 'min': 0, 'max': '*'},
+      {
+        'id': 'HumanName.family',
+        'path': 'HumanName.family',
+        'min': 0,
+        'max': '1',
+        'type': [
+          {'code': 'http://hl7.org/fhirpath/System.String'},
+        ],
+      },
+    ],
+  },
+});

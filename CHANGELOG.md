@@ -1,5 +1,16 @@
 # fhir_validation
 
+## Unreleased
+
+- A complex element's type is found from its type code. The nested lookups
+  (validate_structure, validate_cardinality) asked the cache for the bare
+  code, `HumanName`; a cache keyed by canonical URL holds it at
+  `http://hl7.org/fhir/StructureDefinition/HumanName`, so every complex
+  element was reported "No StructureDefinition or Profile found". All three
+  type lookups now use fhir_path's `typeCodeCanonical` (needs fhir_path
+  0.15.1). On HL7's 138 R4B examples of seven types this message went from
+  128 of 192 errors (first 13 examples) to none.
+
 ## [0.13.0]
 
 - One validation package for every FHIR version, revived from the 2024
