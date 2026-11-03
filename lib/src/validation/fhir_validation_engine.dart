@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:fhir_node/fhir_node.dart';
+import 'package:fhir_path/fhir_path.dart' show typeCodeCanonical;
 import 'package:fhir_validation/fhir_validation.dart';
 import 'package:http/http.dart';
 
@@ -69,17 +70,11 @@ class FhirValidationEngine {
         ..addResult(null, 'ResourceType is missing', Severity.error);
     }
 
-    // Fetch or use provided StructureDefinition
-    // A core type's StructureDefinition is published at
-    // http://hl7.org/fhir/StructureDefinition/<type> — that is the `url` on
-    // the definition itself, so it is the key a cache holds it under. Asking
-    // for the bare type name, which is what this used to do, missed every
-    // cache keyed by canonical URL. The bare name is still tried second, for
-    // a cache that indexes by type.
-    const base = 'http://hl7.org/fhir/StructureDefinition/';
-    structureDefinition ??=
-        await cache.getStructureDefinition('$base$type') ??
-        await cache.getStructureDefinition(type);
+    // Fetch or use provided StructureDefinition, at the canonical the
+    // resource type names (typeCodeCanonical has the spec rule).
+    structureDefinition ??= await cache.getStructureDefinition(
+      typeCodeCanonical(type),
+    );
 
     if (structureDefinition == null) {
       return results..addResult(
