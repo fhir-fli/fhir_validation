@@ -18,22 +18,24 @@ Future<ValidationResults> validateBindings({
     final binding = element.binding;
     final valueSetUrl = binding?.valueSet;
     if (binding != null && valueSetUrl != null) {
-      final validCodes = await getValueSetCodes(valueSetUrl, resourceCache);
-      final elementPath = element.path;
+      // Only an element the resource has is checked, so only its value set
+      // is looked up (HL7 checks a binding per element present).
+      final targetNode = _findNodeByPath(node, element.path);
+      if (targetNode == null) continue;
 
-      // Find the node corresponding to the element path.
-      final targetNode = _findNodeByPath(node, elementPath);
-
-      // Validate the target node against the valid codes from the ValueSet.
-      if (targetNode != null) {
-        newResults = _validateNodeAgainstValueSet(
-          targetNode,
-          validCodes,
-          newResults,
-          binding.strength,
-          valueSetUrl,
-        );
+      final bound = await resolveBoundValueSet(valueSetUrl, resourceCache);
+      final codes = bound.codes;
+      if (codes == null) {
+        newResults.addResult(targetNode, bound.problem!, bound.severity!);
+        continue;
       }
+      newResults = _validateNodeAgainstValueSet(
+        targetNode,
+        codes,
+        newResults,
+        binding.strength,
+        valueSetUrl,
+      );
     }
   }
 

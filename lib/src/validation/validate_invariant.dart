@@ -13,30 +13,56 @@ Future<ValidationResults> validateInvariants({
   required ResourceCache resourceCache,
 }) async {
   final constraints = element.constraints;
-  if (constraints.isNotEmpty) {
-    final context = _getContext(model, node, element, results);
+  if (constraints.isEmpty) return results;
+
+  if (element.types.isEmpty || element.path.isEmpty) {
+    results.addResult(
+      node,
+      'Element type or path is missing for node: ${node.path}',
+      Severity.error,
+    );
+    return results;
+  }
+
+  final value = _valueOf(node, element);
+  // A repeating element is constrained item by item: a constraint's
+  // context is one instance of the element (ElementDefinition.constraint;
+  // HL7's InstanceValidator checks the invariants of each element it
+  // walks).
+  final items =
+      value is List
+          ? [
+            for (var i = 0; i < value.length; i++)
+              (_itemNode(node, i) ?? node, value[i]),
+          ]
+          : [(node, value)];
+
+  for (final (itemNode, itemValue) in items) {
+    final context = _contextFor(model, itemNode, element, itemValue, results);
+    // A value that could not be built has had its problem reported; its
+    // constraints cannot be evaluated, and saying so for each one only
+    // repeats that problem.
+    if (context == null) continue;
     for (final constraint in constraints) {
       final expression = constraint.expression;
       if (expression != null) {
-        if (!_constraintsIDontWantToDo(node, expression)) {
+        if (!_constraintsIDontWantToDo(itemNode, expression)) {
           if (!(await _evaluateConstraint(
             model,
             resourceCache,
-            node,
             context,
             expression,
-            results,
           ))) {
             results.addResult(
-              node,
-              withUrlIfExists('Invariant violation: ${constraint.human}', url),
-              Severity.information,
+              itemNode,
+              withUrlIfExists(_failed(constraint), url),
+              _severity(constraint),
             );
           }
         }
       } else {
         results.addResult(
-          node,
+          itemNode,
           withUrlIfExists('Invariant violation: ${constraint.human}', url),
           Severity.information,
         );
@@ -46,29 +72,54 @@ Future<ValidationResults> validateInvariants({
   return results;
 }
 
-FhirNode? _getContext(
+/// A failed constraint's message: its text, and its key as HL7 names it
+/// (`Constraint failed: <key>: '<human>'`, Messages.properties INV_FAILED).
+String _failed(ElementConstraint constraint) {
+  final key = constraint.key;
+  return 'Invariant violation: ${constraint.human}'
+      '${key == null ? '' : ' ($key)'}';
+}
+
+/// The level a failed constraint is reported at, as HL7's
+/// InstanceValidator.checkInvariant (hapifhir/org.hl7.fhir.core master
+/// f6d3c306): a best-practice constraint at the bpWarnings setting, whose
+/// default (ValidatorSettings) is a warning; otherwise `error` is an error
+/// and `warning` a warning. A constraint with neither keeps the old level.
+Severity _severity(ElementConstraint constraint) {
+  if (constraint.isBestPractice) return Severity.warning;
+  return switch (constraint.severity) {
+    'error' => Severity.error,
+    'warning' => Severity.warning,
+    _ => Severity.information,
+  };
+}
+
+/// The JSON value [node] holds for [element]: a property's value, or the
+/// node itself.
+Object? _valueOf(Node node, ElementNode element) {
+  final dynamic raw = _nodeToMap(node);
+  final key = element.path.split('.').last;
+  return raw is Map<String, dynamic> ? raw[key] ?? raw : raw;
+}
+
+/// The node of item [index] of a repeating [node], when it has one.
+Node? _itemNode(Node node, int index) {
+  final list = node is PropertyNode ? node.value : node;
+  return list is ArrayNode && index < list.children.length
+      ? list.children[index]
+      : null;
+}
+
+/// [extractedContext] as a FHIRPath context of [element]'s type, or null
+/// after reporting why it cannot be one.
+FhirNode? _contextFor(
   ValidationModel<FhirNode> model,
   Node node,
   ElementNode element,
+  Object? extractedContext,
   ValidationResults results,
 ) {
-  final dynamic rawContext = _nodeToMap(node);
-
-  if (element.types.isEmpty || element.path.isEmpty) {
-    results.addResult(
-      node,
-      'Element type or path is missing for node: ${node.path}',
-      Severity.error,
-    );
-    return null;
-  }
-
-  final key = element.path.split('.').last;
-  final extractedContext =
-      rawContext is Map<String, dynamic>
-          ? rawContext[key] ?? rawContext
-          : rawContext;
-
+  var reported = false;
   for (final type in element.types) {
     try {
       final context = model.fromType(extractedContext, type.code);
@@ -76,6 +127,9 @@ FhirNode? _getContext(
         return context;
       }
     } on Object catch (e) {
+      // A complex value the model refuses because one of its parts is
+      // invalid: that part was validated first and its problem reported.
+      if (_aPartWasReported(node, results)) return null;
       // Whatever the model throws for a value it cannot build.
       results.addResult(
         node,
@@ -84,38 +138,57 @@ FhirNode? _getContext(
         'to FHIR type "${type.code}". Error: $e',
         Severity.error,
       );
+      reported = true;
     }
   }
 
-  results.addResult(
-    node,
-    withUrlIfExists(
-      'Unable to determine context type for node: ${node.path}',
-      element.contentReference,
-    ),
-    Severity.warning,
-  );
+  // A primitive the model will not build (a narrative it refuses, a date it
+  // cannot parse) is still its JSON value and its type, so its constraints
+  // are evaluated over the value as written, as HL7's validator evaluates
+  // them over its own element tree whatever a model makes of the value
+  // (txt-1 on a narrative with a javascript: link). Whether the value
+  // itself is valid is the primitive checks' question.
+  for (final type in element.types) {
+    if (_isPrimitiveType(type.code) && _isJsonScalar(extractedContext)) {
+      return JsonNode(extractedContext, type.code);
+    }
+  }
+
+  if (!reported) {
+    results.addResult(
+      node,
+      withUrlIfExists(
+        'Unable to determine context type for node: ${node.path}',
+        element.contentReference,
+      ),
+      Severity.warning,
+    );
+  }
   return null;
 }
 
-/// Evaluates a FHIRPath expression against a [FhirNode] context.
+/// FHIR names its primitive types in lower case (`string`, `xhtml`) and
+/// its complex types and resources with a capital (`Narrative`).
+bool _isPrimitiveType(String code) =>
+    code.isNotEmpty &&
+    code[0] == code[0].toLowerCase() &&
+    code[0] != code[0].toUpperCase();
+
+bool _isJsonScalar(Object? value) =>
+    value is String || value is num || value is bool;
+
+/// Whether a result is already recorded inside [node].
+bool _aPartWasReported(Node node, ValidationResults results) {
+  final prefix = '${node.path}.';
+  return results.results.any((r) => r.path.startsWith(prefix));
+}
+
 Future<bool> _evaluateConstraint(
   ValidationModel<FhirNode> model,
   ResourceCache resourceCache,
-  Node node,
-  FhirNode? context,
+  FhirNode context,
   String expression,
-  ValidationResults results,
 ) async {
-  if (context == null) {
-    results.addResult(
-      node,
-      'Context is null for $expression',
-      Severity.error,
-    );
-    return false;
-  }
-
   // Evaluate the FHIRPath expression using the context, over the version's
   // binding and the same cache the rest of the validation reads.
   final engine = await FHIRPathEngine.create(

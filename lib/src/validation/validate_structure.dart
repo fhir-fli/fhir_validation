@@ -541,8 +541,11 @@ Future<ValidationResults> _checkEnumerations(
   final valueSet = binding?.valueSet;
   if (binding != null && binding.strength == 'required' && valueSet != null) {
     // Fetch the allowed codes from the specified ValueSet.
-    final allowedCodes = await getValueSetCodes(valueSet, run.resourceCache);
-    if (!allowedCodes.contains(value)) {
+    final bound = await resolveBoundValueSet(valueSet, run.resourceCache);
+    final allowedCodes = bound.codes;
+    if (allowedCodes == null) {
+      results.addResult(node, bound.problem!, bound.severity!);
+    } else if (!allowedCodes.contains(value)) {
       results.addResult(
         node,
         withUrlIfExists(

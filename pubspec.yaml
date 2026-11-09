@@ -19,9 +19,14 @@ dependencies:
   characters: ^1.4.0
   collection: ^1.19.1
   fhir_node: ^0.6.1
-  fhir_path: ^0.15.1
+  fhir_path: ^0.15.3
   http: ^1.6.0
 
 dev_dependencies:
+  # A real model for the invariant tests: evaluating a constraint needs a
+  # version's FHIRPath binding, which the JSON test model has none of.
+  fhir_r4: ^0.14.1
+  fhir_r4_path: ^0.14.1
+  fhir_r4_validation: ^0.14.0
   test: ^1.29.0
   very_good_analysis: ^10.1.0
