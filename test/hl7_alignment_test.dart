@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:fhir_node/fhir_node.dart';
 import 'package:fhir_r4_validation/fhir_r4_validation.dart' show r4Validation;
 import 'package:fhir_validation/fhir_validation.dart';
@@ -259,6 +261,59 @@ void main() {
         ['List.contained[1] error'],
       );
     });
+  });
+
+  test('%resource is the resource being validated (que-1a)', () async {
+    // Questionnaire.item, hl7.fhir.r4b.core 4.3.0: que-1a reads
+    // %resource.status. With no resource given the engine threw "no focus
+    // resource" and the validation stopped.
+    Future<List<String>> run(String status) async {
+      final root =
+          parse(
+                jsonEncode({
+                  'resourceType': 'Questionnaire',
+                  'status': status,
+                  'item': [
+                    {'linkId': '1', 'type': 'group'},
+                  ],
+                }),
+                Settings(),
+                'Questionnaire',
+              )
+              as ObjectNode;
+      final item = root.children.firstWhere(
+        (c) => c.key?.value == 'item',
+      );
+      final r = await validateInvariants(
+        model: r4Validation,
+        node: item,
+        element: element({
+          'path': 'Questionnaire.item',
+          'type': [
+            {'code': 'BackboneElement'},
+          ],
+          'constraint': [
+            {
+              'key': 'que-1a',
+              'severity': 'error',
+              'human':
+                  'Group items must have nested items when Questionanire is '
+                  'complete',
+              'expression':
+                  "(type='group' and %resource.status='complete') implies "
+                  'item.empty().not()',
+            },
+          ],
+        }),
+        results: ValidationResults(),
+        resourceCache: CanonicalResourceCache(),
+        root: root,
+      );
+      return [for (final d in r.results) '${d.path} ${d.severity}'];
+    }
+
+    expect(await run('draft'), isEmpty);
+    expect(await run('complete'), ['Questionnaire.item[0] error']);
   });
 
   group('a narrative is checked by its constraints', () {

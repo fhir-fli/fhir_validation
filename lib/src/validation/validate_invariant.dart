@@ -11,6 +11,7 @@ Future<ValidationResults> validateInvariants({
   required ValidationResults results,
   String? url,
   required ResourceCache resourceCache,
+  ObjectNode? root,
 }) async {
   final constraints = element.constraints;
   if (constraints.isEmpty) return results;
@@ -47,12 +48,32 @@ Future<ValidationResults> validateInvariants({
       final expression = constraint.expression;
       if (expression != null) {
         if (!_constraintsIDontWantToDo(itemNode, expression)) {
-          if (!(await _evaluateConstraint(
-            model,
-            resourceCache,
-            context,
-            expression,
-          ))) {
+          final bool holds;
+          try {
+            holds = await _evaluateConstraint(
+              model,
+              resourceCache,
+              context,
+              expression,
+              resource:
+                  root == null ? null : _resourceOf(model, root, itemNode),
+              rootResource: root == null ? null : _rootResourceOf(model, root),
+            );
+          } on Object catch (e) {
+            // An expression the engine cannot evaluate is reported, not
+            // thrown: one constraint must not end the whole validation.
+            results.addResult(
+              itemNode,
+              withUrlIfExists(
+                'Constraint ${constraint.key ?? expression} could not be '
+                'evaluated: $e',
+                url,
+              ),
+              Severity.error,
+            );
+            continue;
+          }
+          if (!holds) {
             results.addResult(
               itemNode,
               withUrlIfExists(_failed(constraint), url),
@@ -217,14 +238,25 @@ Future<bool> _evaluateConstraint(
   ValidationModel<FhirNode> model,
   ResourceCache resourceCache,
   FhirNode context,
-  String expression,
-) async {
+  String expression, {
+  FhirNode? resource,
+  FhirNode? rootResource,
+}) async {
   // Evaluate the FHIRPath expression using the context, over the version's
-  // binding and the same cache the rest of the validation reads.
+  // binding and the same cache the rest of the validation reads, with
+  // %resource and %rootResource set as the FHIRPath spec defines them for
+  // invariants: the resource that contains the element (a contained
+  // resource for its own elements) and the resource being validated.
   final engine = await FHIRPathEngine.create(
     FhirWorkerContext(binding: model.pathBinding, resourceCache: resourceCache),
   );
-  final result = await engine.evaluate(context, engine.parse(expression));
+  final result = await engine.evaluateWithContext(
+    null,
+    resource ?? (context.isResource ? context : null),
+    rootResource ?? resource ?? (context.isResource ? context : null),
+    context,
+    engine.parse(expression),
+  );
 
   // Check if the result satisfies the constraint: one boolean true.
   return result.length == 1 &&
@@ -282,4 +314,70 @@ bool _constraintsIDontWantToDo(Node node, String expression) {
     }
   }
   return false;
+}
+
+/// The resources built for one validation run, by the AST node they came
+/// from, so each is built once.
+final Expando<FhirNode> _built = Expando('resource');
+
+/// [json] as the model's resource, or as plain JSON when the model refuses
+/// it (the problem is reported where the structure check finds it).
+FhirNode _asResource(ValidationModel<FhirNode> model, Node node) {
+  final cached = _built[node];
+  if (cached != null) return cached;
+  final json = _nodeToMap(node) as Map<String, dynamic>;
+  FhirNode built;
+  try {
+    built = model.fromJson(json);
+  } on Object {
+    // Without a resourceType (an AST built by hand) the node's own path
+    // names the type: the root's path is its resource type.
+    final type = json['resourceType'];
+    built = JsonNode(json, type is String ? type : node.path);
+  }
+  return _built[node] = built;
+}
+
+/// `%rootResource`: the resource being validated.
+FhirNode _rootResourceOf(ValidationModel<FhirNode> model, ObjectNode root) =>
+    _asResource(model, root);
+
+/// `%resource`: the contained resource [node] sits inside, if any, else
+/// the resource being validated.
+FhirNode _resourceOf(
+  ValidationModel<FhirNode> model,
+  ObjectNode root,
+  Node node,
+) {
+  // Only an element strictly inside a contained resource has it as
+  // %resource; the contained resource itself is an element of the resource
+  // around it (dom-r4b on X.contained compares it with that resource).
+  final inside = [
+    for (final m in RegExp(r'\.contained\[\d+\]').allMatches(node.path))
+      if (m.end < node.path.length) m,
+  ];
+  if (inside.isEmpty) return _asResource(model, root);
+  final containerPath = node.path.substring(0, inside.last.end);
+  final container = _nodeAt(root, containerPath);
+  return container == null
+      ? _asResource(model, root)
+      : _asResource(model, container);
+}
+
+/// The node of [root]'s tree whose path is [path], or null.
+Node? _nodeAt(Node root, String path) {
+  if (root.path == path) return root;
+  final children = switch (root) {
+    ObjectNode() => root.children,
+    ArrayNode() => root.children,
+    PropertyNode() => [if (root.value != null) root.value!],
+    _ => const <Node>[],
+  };
+  for (final child in children) {
+    if (path == child.path || path.startsWith(child.path)) {
+      final found = _nodeAt(child, path);
+      if (found != null) return found;
+    }
+  }
+  return null;
 }

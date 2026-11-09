@@ -17,7 +17,7 @@ Future<ValidationResults> validateStructure({
   required ResourceCache resourceCache,
 }) async {
   return _objectNode(
-    _Run(model, resourceCache),
+    _Run(model, resourceCache, node),
     url,
     node,
     type,
@@ -30,10 +30,13 @@ Future<ValidationResults> validateStructure({
 /// What every step of one validation run shares: the version's model and
 /// the cache definitions are read from.
 class _Run {
-  const _Run(this.model, this.resourceCache);
+  const _Run(this.model, this.resourceCache, this.root);
 
   final ValidationModel<FhirNode> model;
   final ResourceCache resourceCache;
+
+  /// The resource being validated, for `%resource` and `%rootResource`.
+  final ObjectNode root;
 }
 
 /// Recursively traverses the Abstract Syntax Tree (AST) of a FHIR resource.
@@ -130,6 +133,7 @@ Future<ValidationResults> _objectNode(
       element: element,
       results: newResults,
       resourceCache: run.resourceCache,
+      root: run.root,
     );
   }
 
@@ -239,6 +243,7 @@ Future<ValidationResults> _propertyNode(
       element: element,
       results: newResults,
       resourceCache: run.resourceCache,
+      root: run.root,
     );
   } else {
     // Add an error if no matching element is found.
