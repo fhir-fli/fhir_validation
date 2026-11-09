@@ -119,6 +119,36 @@ FhirNode? _contextFor(
   Object? extractedContext,
   ValidationResults results,
 ) {
+  if (extractedContext is Map<String, dynamic>) {
+    // A contained resource: the element's type is `Resource`, and the
+    // resource names its own type.
+    if (extractedContext['resourceType'] is String) {
+      try {
+        return model.fromJson(extractedContext);
+      } on Object catch (e) {
+        if (_aPartWasReported(node, results)) return null;
+        results.addResult(
+          node,
+          'Type conversion failed: Unable to read the resource. Error: $e',
+          Severity.error,
+        );
+        return null;
+      }
+    }
+    // An element typed Element or BackboneElement is a structure defined
+    // inline by this element (DataRequirement.codeFilter,
+    // Questionnaire.item). Built as that base type it keeps only id and
+    // extensions, so its constraints would see none of its own children
+    // (measured: drq-1 failed on every codeFilter that has a path). Its
+    // constraints are evaluated over the JSON as written, as HL7's
+    // validator evaluates them over its own element tree.
+    for (final type in element.types) {
+      if (type.code == 'Element' || type.code == 'BackboneElement') {
+        return JsonNode(extractedContext, type.code);
+      }
+    }
+  }
+
   var reported = false;
   for (final type in element.types) {
     try {

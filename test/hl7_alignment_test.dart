@@ -147,6 +147,120 @@ void main() {
     );
   });
 
+  group('inline structures and contained resources are read in full', () {
+    Future<List<String>> run(
+      Node node,
+      Map<String, dynamic> elementJson,
+    ) async {
+      final r = await validateInvariants(
+        model: r4Validation,
+        node: node,
+        element: element(elementJson),
+        results: ValidationResults(),
+        resourceCache: CanonicalResourceCache(),
+      );
+      return [for (final d in r.results) '${d.path} ${d.severity}'];
+    }
+
+    // DataRequirement.codeFilter, hl7.fhir.r4b.core 4.3.0 profiles-types.
+    final codeFilter = {
+      'path': 'DataRequirement.codeFilter',
+      'type': [
+        {'code': 'Element'},
+      ],
+      'constraint': [
+        {
+          'key': 'drq-1',
+          'severity': 'error',
+          'human':
+              'Either a path or a searchParam must be provided, but not both',
+          'expression': 'path.exists() xor searchParam.exists()',
+        },
+      ],
+    };
+
+    PropertyNode filters(List<Map<String, String>> items) {
+      final array = ArrayNode(path: 'DataRequirement.codeFilter');
+      for (var i = 0; i < items.length; i++) {
+        final item = ObjectNode(path: 'DataRequirement.codeFilter[$i]');
+        for (final e in items[i].entries) {
+          item.children.add(
+            PropertyNode(path: 'DataRequirement.codeFilter[$i].${e.key}')
+              ..key = ValueNode(e.key, e.key)
+              ..value = LiteralNode(
+                e.value,
+                e.value,
+                path: 'DataRequirement.codeFilter[$i].${e.key}',
+              ),
+          );
+        }
+        array.children.add(item);
+      }
+      return PropertyNode(path: 'DataRequirement.codeFilter')
+        ..key = ValueNode('codeFilter', 'codeFilter')
+        ..value = array;
+    }
+
+    test('drq-1 holds for a codeFilter with a path, fails with both', () async {
+      expect(
+        await run(
+          filters([
+            {'path': 'category'},
+            {'path': 'code', 'searchParam': 'code'},
+          ]),
+          codeFilter,
+        ),
+        ['DataRequirement.codeFilter[1] error'],
+      );
+    });
+
+    test('a contained resource is read as the resource it names', () async {
+      final contained = ArrayNode(path: 'List.contained');
+      for (final (i, id) in [(0, 'a'), (1, null)]) {
+        final item = ObjectNode(path: 'List.contained[$i]')
+          ..children.add(
+            PropertyNode(path: 'List.contained[$i].resourceType')
+              ..key = ValueNode('resourceType', 'resourceType')
+              ..value = LiteralNode(
+                'Patient',
+                'Patient',
+                path: 'List.contained[$i].resourceType',
+              ),
+          );
+        if (id != null) {
+          item.children.add(
+            PropertyNode(path: 'List.contained[$i].id')
+              ..key = ValueNode('id', 'id')
+              ..value = LiteralNode(id, id, path: 'List.contained[$i].id'),
+          );
+        }
+        contained.children.add(item);
+      }
+      expect(
+        await run(
+          PropertyNode(path: 'List.contained')
+            ..key = ValueNode('contained', 'contained')
+            ..value = contained,
+          {
+            'path': 'List.contained',
+            'type': [
+              {'code': 'Resource'},
+            ],
+            'constraint': [
+              {
+                'key': 'x-id',
+                'severity': 'error',
+                'human': 'an id',
+                'expression': 'id.exists()',
+              },
+            ],
+          },
+        ),
+        ['List.contained[1] error'],
+      );
+    });
+  });
+
   group('a narrative is checked by its constraints', () {
     test('a valid narrative reports nothing', () async {
       expect((await div('<div $ns><p>Jane Doe</p></div>')).results, isEmpty);
