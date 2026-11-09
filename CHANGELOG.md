@@ -1,5 +1,39 @@
 # fhir_validation
 
+## [0.13.2]
+
+Checked against HL7's Java validator (hapifhir/org.hl7.fhir.core master
+f6d3c306, InstanceValidator.java) and measured on all 3,022 R4B examples,
+before and after: 24,907 constraint "violations" at information level and
+their "Context is null" errors are gone (none had evaluated the
+constraint); 165 examples that stopped on a missing value set now
+validate; no example that validated before now stops; the one new finding
+is cmd-1 on 7 ConceptMap targets that are narrower with no comment, which
+the examples really do lack.
+
+- A failed constraint is reported at its own severity: `error` as an
+  error, `warning` as a warning, a best-practice constraint as a warning
+  (HL7's default). It was information for every constraint. The message
+  names the key. Needs fhir_path 0.15.3 (`ElementConstraint.severity`).
+- A binding's value set is looked up only for an element the resource
+  has. Not in the cache is a warning, "ValueSet '<url>' not found"; a
+  CodeSystem's url in its place is an error. It threw for every binding in
+  the profile, present or not (`resolveBoundValueSet`, new).
+- A repeating element's constraints are evaluated item by item, and
+  reported at the item. They were never evaluated.
+- An element typed Element or BackboneElement (`DataRequirement.codeFilter`,
+  `Questionnaire.item`) is evaluated over its JSON. Built as the base type
+  it kept only id and extensions, so drq-1 failed on every codeFilter with
+  a path. A contained resource is read as the resource it names.
+- A primitive the model will not build (a narrative it refuses) is still
+  checked by its constraints, over its JSON value: a `javascript:` link
+  fails txt-1 as an error.
+- `%resource` and `%rootResource` are set for constraints: the resource
+  being validated, or the contained resource an element sits inside.
+  que-1a (`%resource.status`) stopped the validation without them.
+- A constraint the engine cannot evaluate is reported as an error naming
+  it, not thrown.
+
 ## [0.13.1]
 
 - A complex element's type is found from its type code. The nested lookups

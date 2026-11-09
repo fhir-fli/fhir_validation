@@ -1,6 +1,8 @@
 import 'package:collection/collection.dart';
 import 'package:fhir_node/fhir_node.dart';
 import 'package:fhir_path/fhir_path.dart';
+import 'package:fhir_validation/src/validation/validation_results.dart'
+    show Severity;
 
 /// Determines the appropriate FHIR type code for an element.
 /// For polymorphic elements (ending in `[x]`), the code is derived
@@ -68,6 +70,53 @@ String? structureDefinitionUrl(FhirNode structureDefinition) {
   if (url == null) return null;
   final version = structureDefinition.getChildByName('version')?.primitiveValue;
   return version == null ? url : '$url|$version';
+}
+
+/// What a binding's value set reference found in the cache: the codes to
+/// check against, or the problem to report instead.
+class BoundValueSet {
+  const BoundValueSet._(this.codes, this.problem, this.severity);
+
+  /// The allowed codes, or null when there is nothing to check against.
+  final Set<String>? codes;
+
+  /// Why the codes could not be checked, or null.
+  final String? problem;
+
+  /// The level [problem] is reported at.
+  final Severity? severity;
+}
+
+/// The value set [url] a binding names, looked up as HL7's
+/// InstanceValidator does (validateBindingCodeableConcept,
+/// hapifhir/org.hl7.fhir.core master f6d3c306): not in the cache is a
+/// warning, `Terminology_TX_ValueSet_NotFound`; a CodeSystem's url where the
+/// value set belongs is an error, `Terminology_TX_ValueSet_NotFound_CS`.
+/// Either way no code is checked.
+Future<BoundValueSet> resolveBoundValueSet(
+  String url,
+  ResourceCache resourceCache,
+) async {
+  final resource = await resourceCache.getCanonicalResource(url);
+  if (resource == null) {
+    return BoundValueSet._(
+      null,
+      "ValueSet '$url' not found",
+      Severity.warning,
+    );
+  }
+  if (resource.fhirType == 'CodeSystem') {
+    return BoundValueSet._(
+      null,
+      "Found a reference to a CodeSystem '$url' where a ValueSet belongs",
+      Severity.error,
+    );
+  }
+  return BoundValueSet._(
+    await getValueSetCodes(url, resourceCache),
+    null,
+    null,
+  );
 }
 
 /// Fetches and extracts all codes from a ValueSet or CodeSystem URL.
