@@ -1,6 +1,6 @@
 name: fhir_validation
 description: FHIR resource validation against StructureDefinitions (structure, cardinality, bindings, extensions, invariants) for every FHIR version, over the fhir_node reflection contract.
-version: 0.13.1
+version: 0.13.2
 homepage: https://www.fhirfli.dev/
 repository: https://github.com/fhir-fli/fhir_validation
 issue_tracker: https://github.com/fhir-fli/fhir_validation/issues
