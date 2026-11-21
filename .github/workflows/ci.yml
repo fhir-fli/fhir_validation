@@ -26,3 +26,8 @@ jobs:
           done
           dart analyze
           dart test
+
+  # Fails when a package declares a dependency it does not use, or requires
+  # an older version of one of our pub.dev packages than the latest.
+  dependencies:
+    uses: fhir-fli/.github/.github/workflows/dependencies.yml@main
