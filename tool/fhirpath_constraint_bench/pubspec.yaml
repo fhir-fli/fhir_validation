@@ -1,0 +1,6 @@
+name: fpbench
+environment:
+  sdk: ^3.5.0
+dependencies:
+  fhir_r4: any
+  fhir_r4_path: any

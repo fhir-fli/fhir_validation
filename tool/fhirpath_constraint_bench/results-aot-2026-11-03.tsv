@@ -1,0 +1,11 @@
+key	parse_us	eval_median_us	eval_p95_us	result
+# engine_create_us	642
+obs-6	47	3	5	[true]
+obs-7	93	1	4	[true]
+dom-2	37	1	5	[true]
+dom-3	297	3	11	[true]
+dom-4	146	5	15	[true]
+dom-5	47	2	11	[true]
+dom-6	56	2	11	[true]
+ele-1-root	54	2	4	[true]
+descendants	42	19	68	[87]
